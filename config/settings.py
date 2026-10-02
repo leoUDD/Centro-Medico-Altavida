@@ -10,10 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import base64
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Apps del proyecto
+    'apps.seguridad',
     'apps.usuarios',
     'apps.sucursales',
     'apps.convenios',
@@ -142,3 +150,17 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# Seguridad de datos personales
+
+CLAVE_CIFRADO = os.environ.get('CLAVE_CIFRADO', '')
+if len(base64.urlsafe_b64decode(CLAVE_CIFRADO or '=')) != 32:
+    raise ImproperlyConfigured(
+        'Falta CLAVE_CIFRADO en el entorno (.env): debe ser una llave de 32 bytes en base64.'
+    )
+
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+]
