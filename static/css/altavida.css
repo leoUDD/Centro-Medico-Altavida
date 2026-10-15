@@ -1,0 +1,117 @@
+/* Altavida · tokens del sistema de diseño */
+:root {
+  --brand: #0F6E6A; --brand-dark: #0B524F; --brand-tint: #E3F1EF;
+  --ink: #1B2A2F; --ink-muted: #55666A;
+  --surface: #F7F9F8; --raised: #FFFFFF; --border: #D5DEDC;
+  --success: #1E7A46; --warning: #B45309; --danger: #B42318; --danger-tint: #FCEDEB;
+  --sans: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 24px; }
+a { color: var(--brand); }
+a:hover { color: var(--brand-dark); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--brand); outline-offset: 2px;
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 24px; line-height: 32px; }
+h2 { font-size: 18px; line-height: 26px; }
+.mono { font-family: var(--mono); font-size: 14px; }
+.muted { color: var(--ink-muted); }
+.small { font-size: 13px; line-height: 18px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Marca */
+.marca { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700; }
+.marca-icono { width: 36px; height: 36px; border-radius: 8px; background: var(--brand); display: flex; align-items: center; justify-content: center; }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px;
+  border-radius: 8px; border: 1px solid var(--ink-muted); background: transparent; color: var(--ink);
+  font: 700 15px var(--sans); text-decoration: none; cursor: pointer; }
+.btn:hover { color: var(--ink); background: var(--surface); }
+.btn-primario { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn-primario:hover { background: var(--brand-dark); color: #fff; }
+.btn-grande { min-height: 48px; font-size: 16px; }
+
+/* Formularios */
+.campo { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.campo > label { font-size: 13px; line-height: 18px; font-weight: 700; }
+.campo input:not([type=checkbox]), .campo select, .campo textarea {
+  width: 100%; min-height: 44px; border: 1px solid var(--ink-muted); border-radius: 8px; padding: 0 12px;
+  font: 16px var(--sans); color: var(--ink); background: #fff; }
+.campo textarea { padding: 10px 12px; resize: vertical; }
+.campo.mono input { font-family: var(--mono); font-size: 15px; }
+.campo.invalido input, .campo.invalido select, .campo.invalido textarea { border-color: var(--danger); border-width: 2px; }
+.ayuda { font-size: 13px; color: var(--ink-muted); }
+.error { font-size: 13px; font-weight: 700; color: var(--danger); display: flex; gap: 6px; align-items: center; }
+.alerta-error { background: var(--danger-tint); color: var(--danger); border-radius: 8px; padding: 12px 16px; font-weight: 700; }
+.alerta-ok { background: var(--brand-tint); color: var(--brand-dark); border-radius: 8px; padding: 12px 16px; font-weight: 700; }
+.rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.rejilla-ancha { grid-column: 1 / -1; }
+fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+legend { font-size: 18px; line-height: 26px; font-weight: 700; padding: 0; margin-bottom: 16px; }
+.casilla { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; line-height: 22px; cursor: pointer; }
+.casilla input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--brand); flex-shrink: 0; }
+.acciones { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+
+/* Tarjetas */
+.tarjeta { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; }
+.tarjeta-pad { padding: 16px; }
+.tarjeta-lg { border-radius: 12px; padding: 32px; }
+
+/* Acceso (login / registro) */
+.acceso { min-height: 100vh; display: flex; flex-wrap: wrap; }
+.acceso-marca { flex: 1 1 420px; background: var(--brand); color: #fff; padding: 48px; display: flex; flex-direction: column;
+  justify-content: space-between; gap: 48px; }
+.acceso-marca .marca-icono { background: #fff; width: 40px; height: 40px; }
+.acceso-marca .marca { font-size: 24px; }
+.acceso-marca h1 { font-size: 40px; line-height: 48px; }
+.acceso-marca p { font-size: 18px; line-height: 28px; color: var(--brand-tint); }
+.acceso-marca .nota { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--brand-tint); }
+.acceso-form { flex: 1 1 480px; display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
+.acceso-form .tarjeta { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 24px; }
+.pagina-centrada { min-height: 100vh; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.pagina-centrada > * { width: 100%; max-width: 720px; }
+.barra { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+form.pila { display: flex; flex-direction: column; gap: 24px; margin: 0; }
+hr.sep { border: 0; height: 1px; background: var(--border); width: 100%; margin: 0; }
+
+/* Panel interno (médico) */
+.panel { min-height: 100vh; display: flex; flex-wrap: wrap; }
+.menu { flex: 1 1 248px; max-width: 100%; background: var(--raised); border-right: 1px solid var(--border); padding: 24px 16px;
+  display: flex; flex-direction: column; gap: 24px; }
+@media (min-width: 900px) { .menu { max-width: 280px; } }
+.menu .marca { padding: 0 8px; }
+.menu-usuario { padding: 12px; border-radius: 8px; background: var(--surface); display: flex; flex-direction: column; }
+.menu-usuario strong { font-size: 15px; }
+.menu-lista { display: flex; flex-direction: column; gap: 4px; }
+.menu-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px;
+  text-decoration: none; font-size: 15px; color: var(--ink); background: transparent; border: 0; width: 100%; font-family: var(--sans); text-align: left; cursor: pointer; }
+.menu-item:hover { background: var(--surface); color: var(--ink); }
+.menu-item[aria-current=page] { background: var(--brand-tint); color: var(--brand); font-weight: 700; }
+.menu-item[aria-disabled=true] { color: var(--ink-muted); cursor: default; }
+.menu-item[aria-disabled=true]:hover { background: transparent; }
+.menu-item .pronto { margin-left: auto; font-size: 12px; border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; }
+.menu form { margin-top: auto; }
+.contenido { flex: 999 1 560px; min-width: 0; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.cabecera { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.cabecera > div { display: flex; flex-direction: column; gap: 4px; }
+
+/* Tablas y chips */
+.tabla-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; padding: 12px 16px; font-size: 13px; color: var(--ink-muted); }
+td { padding: 12px 16px; border-top: 1px solid var(--border); }
+tr.seleccionada td { background: var(--brand-tint); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 700;
+  background: var(--surface); border: 1px solid var(--border); }
+.chip-alerta { background: var(--danger-tint); color: var(--danger); border-color: transparent; }
+.dl-rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; font-size: 14px; margin: 0; }
+.dl-rejilla dt { color: var(--ink-muted); font-size: 13px; }
+.dl-rejilla dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.dos-col { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.dos-col > .principal { flex: 2 1 520px; min-width: 0; }
+.dos-col > .lateral { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.texto-libre { white-space: pre-line; overflow-wrap: anywhere; }
