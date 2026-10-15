@@ -177,3 +177,10 @@ AUTHENTICATION_BACKENDS = ['apps.usuarios.backends.CorreoORutBackend']
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'inicio'
 LOGOUT_REDIRECT_URL = 'login'
+
+
+# Recordatorios
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Centro Médico Altavida <no-responder@altavida.example>')
+# "console" solo registra el SMS en el log; un proveedor real se conecta en apps/notificaciones/sms.py.
+SMS_BACKEND = os.environ.get('SMS_BACKEND', 'console')

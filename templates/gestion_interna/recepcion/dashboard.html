@@ -1,0 +1,149 @@
+{% extends "gestion_interna/recepcion/base_recepcion.html" %}
+{% block titulo %}Agendamiento y recordatorios{% endblock %}
+{% block contenido %}
+<div class="cabecera" id="resumen">
+  <div>
+    <h1>Agendamiento y recordatorios</h1>
+    <p class="muted" style="font-size: 15px;">{% if es_hoy %}Hoy, {% endif %}{{ fecha_texto }}</p>
+  </div>
+</div>
+
+<section aria-label="Resumen del día" class="resumen">
+  <div class="tarjeta tarjeta-pad kpi">
+    <span class="muted small" style="font-weight: 700;">{% if es_hoy %}Citas hoy{% else %}Citas del día{% endif %}</span>
+    <span class="kpi-valor">{{ total }}</span>
+    <span class="muted small">{{ consultas }} consulta{{ consultas|pluralize }} · {{ examenes }} {% if examenes == 1 %}examen{% else %}exámenes{% endif %}</span>
+  </div>
+  <div class="tarjeta tarjeta-pad kpi">
+    <span class="muted small" style="font-weight: 700;">Confirmadas</span>
+    <span class="kpi-valor">{{ confirmadas }}</span>
+    <span class="small" style="color: var(--success); font-weight: 700;">{{ porcentaje }} % del día</span>
+  </div>
+  <div class="tarjeta tarjeta-pad kpi">
+    <span class="muted small" style="font-weight: 700;">Por confirmar</span>
+    <span class="kpi-valor">{{ por_confirmar }}</span>
+    <span class="small" style="color: var(--warning); font-weight: 700;">Requieren llamada</span>
+  </div>
+  <div class="tarjeta tarjeta-pad kpi">
+    <span class="muted small" style="font-weight: 700;">Recordatorios fallidos</span>
+    <span class="kpi-valor">{{ cantidad_fallidos }}</span>
+    <span class="small" style="color: {% if cantidad_fallidos %}var(--danger){% else %}var(--success){% endif %}; font-weight: 700;">{% if cantidad_fallidos %}Revisar contacto{% else %}Todo en orden{% endif %}</span>
+  </div>
+</section>
+
+<section id="agenda" aria-labelledby="agenda-t" class="tarjeta" style="overflow: hidden;">
+  <div class="tarjeta-pad" style="display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--border);">
+    <h2 id="agenda-t">Agenda del día</h2>
+    <form method="get" role="search" class="filtros" action="#agenda">
+      <div class="campo"><label for="fecha">Fecha</label><input id="fecha" name="fecha" type="date" value="{{ fecha|date:'Y-m-d' }}"></div>
+      <div class="campo">
+        <label for="fprof">Profesional</label>
+        <select id="fprof" name="profesional">
+          <option value="">Todos</option>
+          {% for p in profesionales %}<option value="{{ p.pk }}" {% if filtro_prof == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+          <option value="laboratorio" {% if filtro_prof == 'laboratorio' %}selected{% endif %}>Laboratorio</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="fest">Estado</label>
+        <select id="fest" name="estado">
+          <option value="">Todos</option>
+          <option value="confirmada" {% if filtro_estado == 'confirmada' %}selected{% endif %}>Confirmada</option>
+          <option value="por-confirmar" {% if filtro_estado == 'por-confirmar' %}selected{% endif %}>Por confirmar</option>
+          <option value="cancelada" {% if filtro_estado == 'cancelada' %}selected{% endif %}>Cancelada</option>
+        </select>
+      </div>
+      <div class="campo ancho"><label for="fq">Buscar paciente</label><input id="fq" name="q" type="search" value="{{ consulta }}" placeholder="Nombre o RUT" autocomplete="off"></div>
+      <button type="submit" class="btn btn-primario">Filtrar</button>
+    </form>
+  </div>
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>Hora</th><th>Paciente</th><th>Profesional</th><th>Tipo</th><th>Estado</th><th>Recordatorio</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for c in pagina %}
+        <tr>
+          <td class="mono" style="white-space: nowrap;">{{ c.inicio|time:"H:i" }}</td>
+          <td><div>{{ c.paciente.nombre_completo }}</div><div class="mono muted">{{ c.paciente.rut_oculto }}</div></td>
+          <td>{% if c.profesional %}{{ c.profesional.nombre }}{% else %}Laboratorio{% endif %}</td>
+          <td>{% if c.tipo == 'EXAMEN' %}Examen{% elif c.modalidad == 'TELEMEDICINA' %}Telemedicina{% else %}Consulta{% endif %}</td>
+          <td>
+            {% if c.estado == 'CONFIRMADA' %}<span class="estado valor-normal">Confirmada</span>
+            {% elif c.estado == 'AGENDADA' %}<span class="estado valor-bajo">Por confirmar</span>
+            {% else %}<span class="estado valor-alto">Cancelada</span>{% endif %}
+          </td>
+          <td>{% if c.recordatorio_estado.problema %}<span class="estado valor-alto">{{ c.recordatorio_estado.texto }}</span>{% else %}<span class="muted">{{ c.recordatorio_estado.texto }}</span>{% endif %}</td>
+          <td style="white-space: nowrap;">
+            {% if c.vigente and c.inicio > ahora %}
+              {% if c.estado == 'AGENDADA' %}
+              <form method="post" action="{% url 'recepcion:confirmar' c.pk %}" style="display: inline; margin: 0;">{% csrf_token %}<input type="hidden" name="volver" value="{{ request.get_full_path }}"><button type="submit" class="btn" style="min-height: 36px; padding: 0 12px;">Confirmar</button></form>
+              {% endif %}
+              <form method="post" action="{% url 'recepcion:cancelar' c.pk %}" style="display: inline; margin: 0;">{% csrf_token %}<input type="hidden" name="volver" value="{{ request.get_full_path }}"><button type="submit" class="btn" style="min-height: 36px; padding: 0 12px;">Cancelar</button></form>
+            {% endif %}
+            {% if c.recordatorio_estado.problema %}<a href="#recordatorios" style="font-weight: 700;">Revisar</a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">No hay citas para estos filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="tarjeta-pad barra" style="border-top: 1px solid var(--border);">
+    <span class="muted" style="font-size: 14px;">Mostrando {{ pagina|length }} de {{ filtrados }} cita{{ filtrados|pluralize }}</span>
+    <span style="display: flex; gap: 16px;">
+      {% if pagina.has_previous %}<a href="?{{ parametros }}&amp;pagina={{ pagina.previous_page_number }}#agenda" style="font-weight: 700;">← Anterior</a>{% endif %}
+      {% if pagina.has_next %}<a href="?{{ parametros }}&amp;pagina={{ pagina.next_page_number }}#agenda" style="font-weight: 700;">Siguiente →</a>{% endif %}
+    </span>
+  </div>
+</section>
+
+<section id="recordatorios" aria-labelledby="rec-t" class="dos-col">
+  <div class="tarjeta tarjeta-pad principal" style="display: flex; flex-direction: column; gap: 16px;">
+    <div class="barra" style="align-items: flex-start;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <h2 id="rec-t">Generación de recordatorios</h2>
+        <span class="muted" style="font-size: 14px;">
+          {% if ultima_ejecucion %}Última ejecución: {{ ultima_ejecucion.fecha|date:"d-m-Y H:i" }} · {{ ultima_ejecucion.enviados }} enviado{{ ultima_ejecucion.enviados|pluralize }}, {{ ultima_ejecucion.fallidos }} con problemas{% else %}Aún no se ha ejecutado.{% endif %}
+          · {{ pendientes }} pendiente{{ pendientes|pluralize }} de envío
+        </span>
+      </div>
+      <form method="post" action="{% url 'recepcion:generar' %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn btn-primario">Generar ahora</button></form>
+    </div>
+    <form method="post" action="{% url 'recepcion:reglas' %}" class="pila" style="gap: 16px;">
+      {% csrf_token %}
+      <fieldset>
+        <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Reglas automáticas</legend>
+        {% for r in reglas %}
+        <label class="casilla" style="justify-content: space-between;">
+          <span style="display: flex; gap: 12px;"><input type="checkbox" name="regla_{{ r.horas_antes }}" {% if r.activa %}checked{% endif %}><span>{{ r.horas_antes }} horas antes{% if r.con_confirmacion %}, con opción de confirmar{% endif %}</span></span>
+          <span class="chip">{{ r.canales_texto }}</span>
+        </label>
+        {% endfor %}
+      </fieldset>
+      <div class="campo">
+        <label for="plantilla">Mensaje (24 horas antes)</label>
+        <textarea id="plantilla" name="plantilla" rows="3" maxlength="500">{{ regla_24h.plantilla }}</textarea>
+        <span class="ayuda">Puedes usar {nombre}, {fecha}, {hora} y {profesional}. Las plantillas no permiten incluir diagnósticos, exámenes ni datos clínicos.</span>
+      </div>
+      <div class="acciones"><button type="submit" class="btn btn-primario">Guardar reglas</button></div>
+    </form>
+    <p class="muted small">Los recordatorios se envían automáticamente cada hora (comando <span class="mono">enviar_recordatorios</span>). Respetan los canales y horarios que cada paciente eligió.</p>
+  </div>
+
+  <div class="tarjeta tarjeta-pad lateral" style="display: flex; flex-direction: column; gap: 16px;">
+    <h3 style="font-size: 16px;">Envíos con problemas</h3>
+    {% for r in con_problemas %}
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px;">
+      <span class="estado valor-alto" style="align-self: flex-start;">{{ r.get_canal_display }}: {{ r.error|default:"no entregado" }}</span>
+      <strong>{{ r.cita.paciente.nombre_completo }}</strong>
+      <span class="muted small">Cita del {{ r.cita.inicio|date:"d-m" }}, {{ r.cita.inicio|time:"H:i" }} · {% if r.cita.profesional %}{{ r.cita.profesional.nombre }}{% else %}Laboratorio{% endif %}</span>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+        <a href="{% url 'recepcion:contacto' r.cita.paciente.pk %}" class="btn" style="min-height: 36px; padding: 0 12px;">Editar contacto</a>
+        <form method="post" action="{% url 'recepcion:reintentar' r.pk %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn btn-primario" style="min-height: 36px; padding: 0 12px;">Reintentar</button></form>
+      </div>
+    </div>
+    {% empty %}<p class="muted" style="font-size: 14px;">No hay envíos con problemas.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -161,3 +161,8 @@ tr.seleccionada td { background: var(--brand-tint); }
   border: 1px solid var(--ink-muted); cursor: pointer; }
 .hora:hover { border-color: var(--brand); }
 .hora[aria-pressed=true] { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+/* Dashboard administrativo */
+.resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.kpi { display: flex; flex-direction: column; gap: 4px; }
+.kpi-valor { font-size: 32px; line-height: 40px; font-weight: 700; }
