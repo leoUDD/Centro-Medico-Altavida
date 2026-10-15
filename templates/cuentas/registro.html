@@ -1,0 +1,54 @@
+{% extends "base/base.html" %}
+{% block titulo %}Crear cuenta de paciente{% endblock %}
+{% block cuerpo %}
+<div class="pagina-centrada">
+  <div class="barra">
+    <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
+    <a href="{% url 'login' %}" style="font-size: 15px; font-weight: 700;">Ya tengo cuenta, iniciar sesión</a>
+  </div>
+  <main class="tarjeta tarjeta-lg">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h1>Crear cuenta de paciente</h1>
+      <p class="muted" style="font-size: 15px;">Con tu cuenta podrás agendar horas, ver tus resultados de exámenes y recibir recordatorios.</p>
+    </div>
+    <form method="post" class="pila" style="margin-top: 24px;" novalidate>
+      {% csrf_token %}
+      {% if form.errors %}<p class="alerta-error" role="alert">Revisa los campos marcados.</p>{% endif %}
+      <fieldset>
+        <legend>Datos personales</legend>
+        <div class="rejilla">
+          {% include "base/_campo.html" with campo=form.nombres %}
+          {% include "base/_campo.html" with campo=form.apellidos %}
+          {% include "base/_campo.html" with campo=form.rut mono=True ayuda="Validamos el dígito verificador." %}
+          {% include "base/_campo.html" with campo=form.fecha_nacimiento %}
+          {% include "base/_campo.html" with campo=form.email %}
+          {% include "base/_campo.html" with campo=form.telefono ayuda="Lo usamos para los recordatorios de tus citas." %}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Seguridad de la cuenta</legend>
+        <div class="rejilla">
+          {% include "base/_campo.html" with campo=form.clave ayuda="Al menos 12 caracteres; no puede ser una contraseña común." %}
+          {% include "base/_campo.html" with campo=form.clave2 %}
+        </div>
+      </fieldset>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <label class="casilla">
+          <input type="checkbox" name="consentimiento_datos" {% if form.consentimiento_datos.value %}checked{% endif %}>
+          <span>Autorizo el tratamiento de mis datos personales y de salud para la atención médica, según la política de privacidad del centro.</span>
+        </label>
+        {% for e in form.consentimiento_datos.errors %}<span class="error" role="alert">{{ e }}</span>{% endfor %}
+        <label class="casilla">
+          <input type="checkbox" name="recordatorios" {% if form.recordatorios.value %}checked{% endif %}>
+          <span>Quiero recibir recordatorios de citas por correo y SMS.</span>
+        </label>
+      </div>
+      <div class="acciones">
+        <a href="{% url 'login' %}" class="btn btn-grande">Cancelar</a>
+        <button type="submit" class="btn btn-primario btn-grande">Crear cuenta</button>
+      </div>
+    </form>
+  </main>
+  <p class="muted small" style="text-align: center;">¿Eres médico o parte del personal administrativo? Tu cuenta la crea la administración del centro.</p>
+</div>
+{% endblock %}

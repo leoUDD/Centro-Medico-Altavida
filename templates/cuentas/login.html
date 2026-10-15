@@ -1,0 +1,44 @@
+{% extends "base/base.html" %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block cuerpo %}
+<div class="acceso">
+  <section class="acceso-marca">
+    <div class="marca">{% include "base/_logo.html" with color="#0F6E6A" %}<span>Altavida</span></div>
+    <div style="max-width: 460px; display: flex; flex-direction: column; gap: 16px;">
+      <h1>Tu salud, en un solo lugar.</h1>
+      <p>Agenda horas, revisa tus resultados y recibe recordatorios de tus citas. Para el equipo médico: fichas, recetas y diagnósticos en una plataforma segura.</p>
+    </div>
+    <div class="nota">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+      <span>Conexión cifrada. Tu información clínica es confidencial.</span>
+    </div>
+  </section>
+  <main class="acceso-form">
+    <div class="tarjeta tarjeta-lg">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <h2 style="font-size: 24px; line-height: 32px;">Iniciar sesión</h2>
+        <p class="muted" style="font-size: 15px;">Ingresa con tu cuenta de paciente, médico o personal administrativo.</p>
+      </div>
+      <form method="post" class="pila" style="gap: 16px;">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% if error %}<p class="alerta-error" role="alert">{{ error }}</p>{% endif %}
+        <div class="campo">
+          <label for="{{ form.usuario.id_for_label }}">{{ form.usuario.label }}</label>
+          <input id="{{ form.usuario.id_for_label }}" name="usuario" type="text" autocomplete="username" placeholder="nombre@correo.cl" value="{{ form.usuario.value|default:'' }}" required>
+        </div>
+        <div class="campo">
+          <label for="{{ form.clave.id_for_label }}">{{ form.clave.label }}</label>
+          <input id="{{ form.clave.id_for_label }}" name="clave" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primario btn-grande" style="margin-top: 8px;">Ingresar</button>
+      </form>
+      <hr class="sep">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <p style="font-size: 15px;">¿Eres paciente y aún no tienes cuenta? <a href="{% url 'registro' %}" style="font-weight: 700;">Crear cuenta</a></p>
+        <p class="muted small">Las cuentas de médicos y personal administrativo las entrega la administración del centro.</p>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

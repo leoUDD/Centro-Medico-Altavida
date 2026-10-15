@@ -7,6 +7,7 @@ class Prevision(models.Model):
     class Tipo(models.TextChoices):
         FONASA = 'FONASA', 'Fonasa'
         ISAPRE = 'ISAPRE', 'Isapre'
+        PARTICULAR = 'PARTICULAR', 'Particular'
 
     nombre = models.CharField(max_length=100, unique=True)
     tipo = models.CharField(max_length=10, choices=Tipo.choices)

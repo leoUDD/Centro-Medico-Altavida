@@ -1,0 +1,64 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Ficha de {{ paciente.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>{{ paciente.nombre_completo }}</h1>
+    <p class="mono">{{ paciente.rut_formateado }}</p>
+  </div>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <a href="{% url 'fichas:historial' paciente.pk %}" class="btn btn-primario">Diagnósticos y tratamientos</a>
+    <a href="{% url 'laboratorio:examenes' paciente.pk %}" class="btn">Resultados de exámenes</a>
+    <a href="{% url 'recetas:nueva' paciente.pk %}" class="btn">Emitir receta</a>
+    <a href="{% url 'fichas:buscar' %}" class="btn">← Volver a la búsqueda</a>
+  </div>
+</div>
+
+<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+  {% if historial.alergias %}<span class="chip chip-alerta">Alergia: {{ historial.alergias }}</span>{% endif %}
+  {% if cobertura %}<span class="chip">{{ cobertura.prevision }}</span>{% endif %}
+</div>
+
+<div class="dos-col">
+  <section class="tarjeta tarjeta-pad principal" aria-labelledby="datos" style="display: flex; flex-direction: column; gap: 16px;">
+    <h2 id="datos">Datos del paciente</h2>
+    <dl class="dl-rejilla">
+      <div><dt>Edad</dt><dd>{{ paciente.edad|default:"—" }}{% if paciente.edad %} años{% endif %}</dd></div>
+      <div><dt>Fecha de nacimiento</dt><dd class="mono" style="font-weight: 400;">{{ paciente.fecha_nacimiento }}</dd></div>
+      <div><dt>Sexo registral</dt><dd>{{ paciente.sexo|default:"—" }}</dd></div>
+      <div><dt>Grupo sanguíneo</dt><dd>{{ paciente.grupo_sanguineo|default:"—" }}</dd></div>
+      <div><dt>Peso</dt><dd>{{ paciente.peso|default:"—" }}{% if paciente.peso %} kg{% endif %}</dd></div>
+      <div><dt>Talla</dt><dd>{{ paciente.estatura|default:"—" }}{% if paciente.estatura %} cm{% endif %}</dd></div>
+      <div><dt>Correo</dt><dd>{{ paciente.email|default:"—" }}</dd></div>
+      <div><dt>Teléfono</dt><dd class="mono" style="font-weight: 400;">{{ paciente.telefono|default:"—" }}</dd></div>
+      <div><dt>Dirección</dt><dd>{{ paciente.direccion|default:"—" }}{% if paciente.comuna %}, {{ paciente.comuna }}{% endif %}</dd></div>
+      <div><dt>Contacto de emergencia</dt><dd>{{ paciente.contacto_emergencia_nombre|default:"—" }}{% if paciente.contacto_emergencia_parentesco %} ({{ paciente.contacto_emergencia_parentesco }}){% endif %} {{ paciente.contacto_emergencia_telefono }}</dd></div>
+    </dl>
+    <hr class="sep">
+    <h2>Antecedentes clínicos</h2>
+    <dl style="margin: 0; display: flex; flex-direction: column; gap: 12px;">
+      <div><dt class="small muted">Enfermedades crónicas</dt><dd class="texto-libre" style="margin: 0;">{{ historial.enfermedades|default:"—" }}</dd></div>
+      <div><dt class="small muted">Medicamentos de uso habitual</dt><dd class="texto-libre" style="margin: 0;">{{ historial.medicamentos_activos|default:"—" }}</dd></div>
+      <div><dt class="small muted">Antecedentes quirúrgicos y familiares</dt><dd class="texto-libre" style="margin: 0;">{{ historial.operaciones|default:"—" }}</dd></div>
+    </dl>
+  </section>
+
+  <aside class="tarjeta tarjeta-pad lateral" aria-labelledby="dx">
+    <h2 id="dx">Diagnósticos</h2>
+    {% for d in diagnosticos %}
+      <div style="font-size: 14px;">
+        <div style="display: flex; justify-content: space-between; gap: 8px;"><strong>{{ d.diagnostico }}</strong><span class="muted mono" style="white-space: nowrap;">{{ d.fecha|date:"d-m-Y" }}</span></div>
+        {% if d.tratamiento %}<p class="muted texto-libre">{{ d.tratamiento }}</p>{% endif %}
+        <p class="muted small">{{ d.medico.get_full_name|default:d.medico.get_username }}</p>
+      </div>
+    {% empty %}<p class="muted" style="font-size: 14px;">Sin diagnósticos registrados.</p>{% endfor %}
+    <h2>Recetas</h2>
+    {% for r in recetas %}
+      <a href="{% if r.emitida %}{% url 'recetas:detalle' r.pk %}{% else %}{% url 'recetas:editar' r.pk %}{% endif %}" style="display: flex; justify-content: space-between; gap: 8px; font-size: 14px;">
+        <span class="mono">{{ r.folio }}</span><span>{{ r.get_estado_display }} · {{ r.creada|date:"d-m-Y" }}</span>
+      </a>
+    {% empty %}<p class="muted" style="font-size: 14px;">Sin recetas.</p>{% endfor %}
+    <p class="muted small">Tu acceso a esta ficha queda registrado en la bitácora.</p>
+  </aside>
+</div>
+{% endblock %}

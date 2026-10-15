@@ -1,0 +1,16 @@
+<div class="tarjeta tarjeta-pad item-receta" data-item style="display: flex; flex-direction: column; gap: 12px; background: var(--surface);">
+  <div class="barra">
+    <strong data-numero>Medicamento {{ numero }}</strong>
+    <span hidden>{{ f.DELETE }}</span>
+    <button type="button" class="btn" data-quitar aria-label="Quitar medicamento {{ numero }}" style="min-height: 36px; padding: 0 12px;">Quitar</button>
+  </div>
+  <p class="alerta-error small" data-alerta-alergia role="alert" hidden>Familia de medicamentos a la que el paciente es alérgico.</p>
+  {% for e in f.non_field_errors %}<span class="error" role="alert">{{ e }}</span>{% endfor %}
+  <div class="rejilla">
+    <div class="rejilla-ancha">{% include "base/_campo.html" with campo=f.medicamento %}</div>
+    {% include "base/_campo.html" with campo=f.dosis %}
+    {% include "base/_campo.html" with campo=f.frecuencia %}
+    {% include "base/_campo.html" with campo=f.duracion %}
+    {% include "base/_campo.html" with campo=f.via %}
+  </div>
+</div>

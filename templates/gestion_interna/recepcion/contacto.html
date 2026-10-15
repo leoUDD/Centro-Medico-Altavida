@@ -1,0 +1,20 @@
+{% extends "gestion_interna/recepcion/base_recepcion.html" %}
+{% block titulo %}Editar contacto{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Editar contacto</h1>
+    <p class="muted" style="font-size: 15px;">{{ paciente.nombre_completo }} · <span class="mono">{{ paciente.rut_oculto }}</span></p>
+  </div>
+</div>
+<form method="post" class="pila tarjeta tarjeta-lg" style="max-width: 560px;" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}<p class="alerta-error" role="alert">Revisa los campos marcados.</p>{% endif %}
+  {% include "base/_campo.html" with campo=form.email %}
+  {% include "base/_campo.html" with campo=form.telefono ayuda="Con código de país, por ejemplo +56 9 1234 5678." %}
+  <div class="acciones">
+    <a href="{% url 'recepcion:dashboard' %}#recordatorios" class="btn btn-grande">Cancelar</a>
+    <button type="submit" class="btn btn-primario btn-grande">Guardar contacto</button>
+  </div>
+</form>
+{% endblock %}

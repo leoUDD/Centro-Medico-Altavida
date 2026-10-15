@@ -1,0 +1,6 @@
+<div class="campo{% if campo.errors %} invalido{% endif %}{% if mono %} mono{% endif %}">
+  <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if requerido %} *{% endif %}</label>
+  {{ campo }}
+  {% if ayuda %}<span class="ayuda">{{ ayuda }}</span>{% endif %}
+  {% for e in campo.errors %}<span class="error" role="alert">{{ e }}</span>{% endfor %}
+</div>

@@ -1,0 +1,87 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% load static %}
+{% block titulo %}Emitir receta{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Emitir receta médica</h1>
+    <p class="muted" style="font-size: 15px;">Agrega los medicamentos y revisa la vista previa antes de emitir.</p>
+  </div>
+</div>
+
+{% include "gestion_interna/fichas/_banda_paciente.html" %}
+
+{% if historial.alergias %}
+<div class="alerta-error" role="alert" style="display: flex; flex-direction: column; gap: 2px;">
+  <span>Alergia registrada: {{ historial.alergias }}</span>
+  <span class="small" style="font-weight: 400;">El sistema te avisará si agregas un medicamento de esa familia.</span>
+</div>
+{% endif %}
+
+{% if sin_diagnosticos %}
+<p class="alerta-ok" role="status" style="background: #FEF3E2; color: var(--warning);">Este paciente aún no tiene diagnósticos. <a href="{% url 'fichas:nuevo_diagnostico' paciente.pk %}" style="font-weight: 700;">Registra uno</a> para asociarlo a la receta.</p>
+{% endif %}
+
+<form method="post" id="receta-app" class="dos-col" novalidate data-paciente="{{ paciente.nombre_completo }}">
+  {% csrf_token %}
+  {{ formset.management_form }}
+  <div class="principal" style="display: flex; flex-direction: column; gap: 24px; flex: 2 1 520px; min-width: 0;">
+    {% for e in form.non_field_errors %}<p class="alerta-error" role="alert">{{ e }}</p>{% endfor %}
+    {% if formset.non_form_errors %}{% for e in formset.non_form_errors %}<p class="alerta-error" role="alert">{{ e }}</p>{% endfor %}{% endif %}
+
+    <section class="tarjeta tarjeta-pad">{% include "base/_campo.html" with campo=form.diagnostico requerido=True %}</section>
+
+    <section class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 16px;" aria-labelledby="meds">
+      <h2 id="meds">Medicamentos</h2>
+      <div id="items" style="display: flex; flex-direction: column; gap: 16px;">
+        {% for f in formset %}{% include "gestion_interna/recetas/_item.html" with f=f numero=forloop.counter %}{% endfor %}
+      </div>
+      <button type="button" id="agregar" class="btn" style="align-self: flex-start;">+ Agregar medicamento</button>
+    </section>
+
+    <section class="tarjeta tarjeta-pad">{% include "base/_campo.html" with campo=form.indicaciones %}</section>
+  </div>
+
+  <aside class="lateral" aria-labelledby="vp" style="flex: 1 1 320px; min-width: 0;">
+    <div class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="barra"><h2 id="vp">Vista previa</h2><span class="chip">{% if receta %}{{ receta.folio }} · Borrador{% else %}Borrador{% endif %}</span></div>
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">{% include "base/_logo.html" with color="#0F6E6A" %}<span>Centro Médico Altavida</span></div>
+      <dl class="dl-rejilla">
+        <div><dt>Paciente</dt><dd>{{ paciente.nombre_completo }}</dd></div>
+        <div><dt>RUT</dt><dd class="mono" style="font-weight: 400;">{{ paciente.rut_formateado }}</dd></div>
+        <div><dt>Fecha</dt><dd class="mono" style="font-weight: 400;">{{ hoy|date:"d-m-Y" }}</dd></div>
+        <div><dt>Diagnóstico</dt><dd id="vp-diag" class="mono" style="font-weight: 400;">—</dd></div>
+      </dl>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <strong>Rp.</strong>
+        <div id="vp-items" style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;"></div>
+        <p id="vp-ind" class="texto-libre muted" style="font-size: 14px;"></p>
+      </div>
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column;">
+        <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+        <span class="muted small">{{ user.especialidad|default:"Médico" }} · Firma electrónica al emitir</span>
+      </div>
+    </div>
+
+    <div class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 12px;">
+      {% if palabras_alerta %}
+      <label class="casilla">
+        <input type="checkbox" name="confirmo_alergia" {% if request.POST.confirmo_alergia %}checked{% endif %}>
+        <span class="small">Revisé la alerta de alergia del paciente y confirmo los medicamentos.</span>
+      </label>
+      {% endif %}
+      <div class="campo">
+        <label for="clave">Tu contraseña (para firmar)</label>
+        <input id="clave" name="clave" type="password" autocomplete="current-password">
+        <span class="ayuda">Al emitir te pedimos confirmar con tu contraseña.</span>
+      </div>
+      <button type="submit" name="accion" value="emitir" class="btn btn-primario btn-grande">Emitir receta</button>
+      <button type="submit" name="accion" value="borrador" class="btn btn-grande">Guardar borrador</button>
+    </div>
+  </aside>
+</form>
+
+<template id="item-vacio">{% include "gestion_interna/recetas/_item.html" with f=formset.empty_form numero="__n__" %}</template>
+{{ palabras_alerta|json_script:"palabras-alerta" }}
+<script src="{% static 'js/receta.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% load static %}
+{% block titulo %}Agendar examen{% endblock %}
+{% block contenido %}
+<div>
+  <h1>Agendar toma de exámenes</h1>
+  <p class="muted" style="font-size: 15px;">Indica qué examen necesitas, adjunta la orden y elige día y hora.</p>
+</div>
+
+{% if reprogramar %}<p class="alerta-ok" role="status">Estás cambiando tu hora del {{ reprogramar.inicio|date:"d-m-Y H:i" }}. Tu hora anterior se cancela al confirmar la nueva.</p>{% endif %}
+{% if error %}<p class="alerta-error" role="alert">{{ error }}</p>{% endif %}
+
+{% if sin_agenda %}
+<p class="tarjeta tarjeta-pad muted">Por ahora no hay exámenes disponibles para agendar. Intenta más tarde o llama al centro.</p>
+{% else %}
+<form method="post" enctype="multipart/form-data" id="agenda-form" class="dos-col" novalidate>
+  {% csrf_token %}
+  <button type="submit" name="accion" value="actualizar" hidden aria-hidden="true" tabindex="-1"></button>
+  <input type="hidden" name="mes" value="{{ mes }}">
+  {% if dia %}<input type="hidden" name="dia" value="{{ dia.isoformat }}">{% endif %}
+  {% if hora %}<input type="hidden" name="hora" value="{{ hora }}">{% endif %}
+  {% if reprogramar %}<input type="hidden" name="reprogramar" value="{{ reprogramar.pk }}">{% endif %}
+
+  <section class="tarjeta tarjeta-pad lateral" style="flex: 1 1 320px; gap: 16px;" aria-labelledby="datos">
+    <h2 id="datos">1. Datos del examen</h2>
+    <div class="campo">
+      <label for="tipo_examen">Examen</label>
+      <select id="tipo_examen" name="tipo_examen" data-auto>
+        {% for t in tipos %}<option value="{{ t.pk }}" {% if t == tipo %}selected{% endif %}>{{ t.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    {% if tipo.preparacion or tipo.requiere_ayuno %}
+    <p class="tarjeta tarjeta-pad" role="note" style="background: var(--brand-tint); border-color: transparent; font-size: 14px;">
+      <strong>Preparación:</strong> {% if tipo.preparacion %}{{ tipo.preparacion }}{% else %}requiere ayuno de {{ tipo.ayuno_horas }} horas. Puedes tomar agua.{% endif %}
+    </p>
+    {% endif %}
+    <fieldset>
+      <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Orden médica</legend>
+      {% for o in opciones_orden %}
+      <label class="casilla" style="border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+        <input type="radio" name="orden" value="{{ o.valor }}" data-auto {% if o.valor == orden_elegida %}checked{% endif %}>
+        {% if o.orden %}
+          <span><strong>Orden emitida en Altavida</strong><br><span class="muted small">{{ o.orden.fecha|date:"d-m-Y" }} · {{ o.orden.medico.get_full_name|default:o.orden.medico.get_username }}</span></span>
+        {% else %}
+          <span><strong>Subir una orden externa</strong><br><span class="muted small">PDF o foto, máximo 5 MB</span></span>
+        {% endif %}
+      </label>
+      {% endfor %}
+    </fieldset>
+    <div class="campo">
+      <label for="sucursal">Laboratorio</label>
+      <select id="sucursal" name="sucursal" data-auto>
+        {% for s in sedes %}<option value="{{ s.pk }}" {% if s == sede %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <noscript><button type="submit" name="accion" value="actualizar" class="btn">Actualizar horas</button></noscript>
+  </section>
+
+  <div class="principal" style="flex: 2 1 480px; display: flex; flex-direction: column; gap: 24px; min-width: 0;">
+    {% if tipo.requiere_ayuno %}{% include "portal_paciente/_calendario.html" with titulo_horas="Horas disponibles (solo mañana, por el ayuno)" extra="portal_paciente/_orden_externa.html" %}
+    {% else %}{% include "portal_paciente/_calendario.html" with extra="portal_paciente/_orden_externa.html" %}{% endif %}
+  </div>
+</form>
+{% endif %}
+<script src="{% static 'js/agendar.js' %}" defer></script>
+{% endblock %}

@@ -17,10 +17,18 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('medico/fichas/', include('apps.fichas_clinicas.urls')),
+    path('medico/examenes/', include('apps.laboratorio.urls')),
+    path('medico/recetas/', include('apps.recetas.urls')),
+    path('paciente/agendar/', include('apps.agenda.urls')),
+    path('paciente/', include('apps.pacientes.urls')),
+    path('paciente/notificaciones/', include('apps.notificaciones.urls')),
+    path('administracion/', include('apps.agenda.urls_recepcion')),
+    path('', include('apps.usuarios.urls')),
 ]
 
 if settings.DEBUG:

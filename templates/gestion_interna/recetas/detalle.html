@@ -1,0 +1,40 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Receta {{ receta.folio }}{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Receta {{ receta.folio }}</h1>
+    <p class="muted" style="font-size: 15px;">{% if receta.emitida %}Emitida el {{ receta.emitida_en|date:"d-m-Y H:i" }}.{% else %}Borrador sin emitir.{% endif %}</p>
+  </div>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <a href="{% url 'fichas:detalle' paciente.pk %}" class="btn">← Volver a la ficha</a>
+    {% if receta.emitida %}<button type="button" class="btn btn-primario" onclick="window.print()">Imprimir</button>{% endif %}
+  </div>
+</div>
+
+<article class="tarjeta tarjeta-lg" style="max-width: 720px; display: flex; flex-direction: column; gap: 16px;">
+  <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">{% include "base/_logo.html" with color="#0F6E6A" %}<span>Centro Médico Altavida</span></div>
+  <dl class="dl-rejilla">
+    <div><dt>Paciente</dt><dd>{{ paciente.nombre_completo }}</dd></div>
+    <div><dt>RUT</dt><dd class="mono" style="font-weight: 400;">{{ paciente.rut_formateado }}</dd></div>
+    <div><dt>Fecha</dt><dd class="mono" style="font-weight: 400;">{{ receta.emitida_en|default:receta.creada|date:"d-m-Y" }}</dd></div>
+    <div><dt>Diagnóstico</dt><dd>{{ receta.diagnostico.codigo_cie10 }} · {{ receta.diagnostico.diagnostico }}</dd></div>
+  </dl>
+  <hr class="sep">
+  <strong>Rp.</strong>
+  <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+    {% for i in items %}
+    <li><strong>{{ i.medicamento }}</strong><br>{{ i.dosis }}, {{ i.frecuencia }}, vía {{ i.via|lower }}, por {{ i.duracion }}.</li>
+    {% endfor %}
+  </ol>
+  {% if receta.indicaciones %}<p class="texto-libre">{{ receta.indicaciones }}</p>{% endif %}
+  <hr class="sep">
+  <div style="display: flex; flex-direction: column;">
+    <strong>{{ receta.medico.get_full_name|default:receta.medico.get_username }}</strong>
+    <span class="muted small">{{ receta.medico.especialidad|default:"Médico" }}</span>
+    {% if receta.emitida %}
+    <span class="muted small mono" style="margin-top: 8px;">Firma electrónica: {{ receta.firma|slice:":16" }}… {% if receta.firma_valida %}(íntegra){% else %}(¡no coincide con el contenido!){% endif %}</span>
+    {% endif %}
+  </div>
+</article>
+{% endblock %}

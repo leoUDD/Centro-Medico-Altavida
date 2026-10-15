@@ -1,0 +1,62 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Agendar consulta{% endblock %}
+{% block contenido %}
+<div>
+  <h1>Agendar hora de consulta</h1>
+  <p class="muted" style="font-size: 15px;">Completa los datos, elige un día y una hora disponibles.</p>
+</div>
+
+{% if reprogramar %}<p class="alerta-ok" role="status">Estás cambiando tu hora del {{ reprogramar.inicio|date:"d-m-Y H:i" }}. Tu hora anterior se cancela al confirmar la nueva.</p>{% endif %}
+{% if error %}<p class="alerta-error" role="alert">{{ error }}</p>{% endif %}
+
+{% if sin_agenda %}
+<p class="tarjeta tarjeta-pad muted">Por ahora no hay especialidades disponibles para agendar. Intenta más tarde o llama al centro.</p>
+{% else %}
+<form method="post" id="agenda-form" class="dos-col" novalidate>
+  {% csrf_token %}
+  <button type="submit" name="accion" value="actualizar" hidden aria-hidden="true" tabindex="-1"></button>
+  <input type="hidden" name="mes" value="{{ mes }}">
+  {% if dia %}<input type="hidden" name="dia" value="{{ dia.isoformat }}">{% endif %}
+  {% if hora %}<input type="hidden" name="hora" value="{{ hora }}">{% endif %}
+  {% if reprogramar %}<input type="hidden" name="reprogramar" value="{{ reprogramar.pk }}">{% endif %}
+
+  <section class="tarjeta tarjeta-pad lateral" style="flex: 1 1 320px; gap: 16px;" aria-labelledby="datos">
+    <h2 id="datos">1. Datos de la consulta</h2>
+    <div class="campo">
+      <label for="especialidad">Especialidad</label>
+      <select id="especialidad" name="especialidad" data-auto>
+        {% for e in especialidades %}<option value="{{ e.pk }}" {% if e == especialidad %}selected{% endif %}>{{ e.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="profesional">Profesional</label>
+      <select id="profesional" name="profesional" data-auto>
+        <option value="">Cualquier profesional disponible</option>
+        {% for p in profesionales %}<option value="{{ p.pk }}" {% if p == profesional %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <fieldset>
+      <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Modalidad</legend>
+      <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+        {% for valor, nombre in modalidades %}
+        <label class="casilla"><input type="radio" name="modalidad" value="{{ valor }}" data-auto {% if valor == modalidad %}checked{% endif %}><span>{{ nombre }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="campo">
+      <label for="motivo">Motivo de la consulta</label>
+      <textarea id="motivo" name="motivo" rows="4" maxlength="1000" placeholder="Cuéntanos brevemente qué te pasa o qué necesitas">{{ motivo }}</textarea>
+      <span class="ayuda">Solo lo verá el profesional que te atenderá.</span>
+    </div>
+    <noscript><button type="submit" name="accion" value="actualizar" class="btn">Actualizar horas</button></noscript>
+  </section>
+
+  <div class="principal" style="flex: 2 1 480px; display: flex; flex-direction: column; gap: 24px; min-width: 0;">
+    {% if sin_horarios %}<p class="alerta-error" role="status">No hay profesionales disponibles con esta selección. Prueba con otro profesional o modalidad.</p>{% endif %}
+    {% include "portal_paciente/_calendario.html" %}
+  </div>
+</form>
+{% endif %}
+{% load static %}
+<script src="{% static 'js/agendar.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Altavida{% endblock %} · Centro Médico Altavida</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <link rel="stylesheet" href="{% static 'css/altavida.css' %}">
+</head>
+<body>
+{% block cuerpo %}{% endblock %}
+</body>
+</html>

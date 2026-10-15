@@ -4,3 +4,6 @@ from .models import Diagnostico, HistorialMedico
 
 admin.site.register(HistorialMedico)
 admin.site.register(Diagnostico)
+from .models import AccesoFicha
+
+admin.site.register(AccesoFicha)

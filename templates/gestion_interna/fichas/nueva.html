@@ -1,0 +1,58 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Nueva ficha{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Nueva ficha clínica</h1>
+    <p class="muted" style="font-size: 15px;">Completa los datos del paciente. Los campos marcados con * son obligatorios.</p>
+  </div>
+</div>
+<form method="post" class="pila tarjeta tarjeta-lg" novalidate style="max-width: 920px;">
+  {% csrf_token %}
+  {% if form.errors %}<p class="alerta-error" role="alert">Revisa los campos marcados.</p>{% endif %}
+  <fieldset>
+    <legend>Identificación</legend>
+    <div class="rejilla">
+      {% include "base/_campo.html" with campo=form.nombres requerido=True %}
+      {% include "base/_campo.html" with campo=form.apellidos requerido=True %}
+      {% include "base/_campo.html" with campo=form.rut requerido=True mono=True %}
+      {% include "base/_campo.html" with campo=form.fecha_nacimiento requerido=True %}
+      {% include "base/_campo.html" with campo=form.sexo requerido=True %}
+      {% include "base/_campo.html" with campo=form.prevision requerido=True %}
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Contacto</legend>
+    <div class="rejilla">
+      {% include "base/_campo.html" with campo=form.email %}
+      {% include "base/_campo.html" with campo=form.telefono requerido=True %}
+      {% include "base/_campo.html" with campo=form.direccion %}
+      {% include "base/_campo.html" with campo=form.comuna %}
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Antecedentes clínicos <span class="chip" style="font-size: 12px; vertical-align: middle;">Datos sensibles: se guardan cifrados</span></legend>
+    <div class="rejilla">
+      {% include "base/_campo.html" with campo=form.grupo_sanguineo %}
+      {% include "base/_campo.html" with campo=form.peso %}
+      {% include "base/_campo.html" with campo=form.estatura %}
+    </div>
+    {% include "base/_campo.html" with campo=form.alergias requerido=True ayuda="Obligatorio: se muestra como alerta al emitir recetas. Escribe «Ninguna conocida» si no tiene." %}
+    {% include "base/_campo.html" with campo=form.enfermedades %}
+    {% include "base/_campo.html" with campo=form.medicamentos_activos %}
+    {% include "base/_campo.html" with campo=form.operaciones %}
+  </fieldset>
+  <fieldset>
+    <legend>Contacto de emergencia</legend>
+    <div class="rejilla">
+      {% include "base/_campo.html" with campo=form.contacto_emergencia_nombre %}
+      {% include "base/_campo.html" with campo=form.contacto_emergencia_parentesco %}
+      {% include "base/_campo.html" with campo=form.contacto_emergencia_telefono %}
+    </div>
+  </fieldset>
+  <div class="acciones">
+    <a href="{% url 'fichas:buscar' %}" class="btn btn-grande">Cancelar</a>
+    <button type="submit" class="btn btn-primario btn-grande">Crear ficha</button>
+  </div>
+</form>
+{% endblock %}

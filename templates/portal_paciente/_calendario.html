@@ -1,0 +1,45 @@
+<section class="tarjeta tarjeta-pad" aria-labelledby="cal" style="display: flex; flex-direction: column; gap: 16px;">
+  <h2 id="cal">2. Elige día y hora</h2>
+  <div class="barra">
+    <button type="submit" name="mes" value="{{ calendario.anterior }}" class="btn" aria-label="Mes anterior" style="min-height: 36px; padding: 0 12px;" {% if not calendario.anterior %}disabled{% endif %}>‹</button>
+    <strong>{{ calendario.etiqueta }}</strong>
+    <button type="submit" name="mes" value="{{ calendario.siguiente }}" class="btn" aria-label="Mes siguiente" style="min-height: 36px; padding: 0 12px;" {% if not calendario.siguiente %}disabled{% endif %}>›</button>
+  </div>
+  <div class="cal-grid">
+    <span class="cal-cab">Lu</span><span class="cal-cab">Ma</span><span class="cal-cab">Mi</span><span class="cal-cab">Ju</span><span class="cal-cab">Vi</span><span class="cal-cab">Sá</span><span class="cal-cab">Do</span>
+    {% for c in calendario.celdas %}
+      {% if c %}
+        <button type="submit" name="dia" value="{{ c.iso }}" class="cal-dia" aria-label="{{ c.aria }}" aria-pressed="{% if c.elegido %}true{% else %}false{% endif %}" {% if not c.disponible %}disabled{% endif %}>{{ c.numero }}</button>
+      {% else %}<span aria-hidden="true"></span>{% endif %}
+    {% endfor %}
+  </div>
+  <div class="muted small" style="display: flex; gap: 16px; flex-wrap: wrap;">
+    <span><strong style="color: var(--ink);">Negrita</strong>: con horas disponibles</span>
+    <span><span style="text-decoration: line-through;">12</span>: sin horas</span>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <strong class="small">{{ titulo_horas|default:"Horas disponibles" }}</strong>
+    {% if dia %}
+      <div class="horas">
+        {% for h in horas %}
+          <button type="submit" name="hora" value="{{ h.valor }}" class="hora" aria-pressed="{% if h.elegida %}true{% else %}false{% endif %}">{{ h.valor }}</button>
+        {% empty %}<span class="muted">No quedan horas este día.</span>{% endfor %}
+      </div>
+    {% else %}<span class="muted" style="font-size: 14px;">Elige un día con horas disponibles para ver los horarios.</span>{% endif %}
+  </div>
+</section>
+
+<section class="tarjeta tarjeta-pad" aria-labelledby="res" style="display: flex; flex-direction: column; gap: 12px;">
+  <div style="display: flex; flex-direction: column; gap: 2px;">
+    <h2 id="res">Tu reserva</h2>
+    {% if resumen %}
+      <strong>{{ resumen }}</strong>
+      <span class="muted" style="font-size: 14px;">{{ detalle_reserva }}</span>
+    {% else %}<span class="muted" style="font-size: 14px;">Aún no has elegido día y hora.</span>{% endif %}
+  </div>
+  {% if extra %}{% include extra %}{% endif %}
+  <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <button type="submit" name="accion" value="confirmar" class="btn btn-primario btn-grande" {% if not resumen %}disabled{% endif %}>{% if reprogramar %}Confirmar cambio de hora{% else %}Confirmar hora{% endif %}</button>
+    <span class="muted small">{{ pie_reserva }}</span>
+  </div>
+</section>

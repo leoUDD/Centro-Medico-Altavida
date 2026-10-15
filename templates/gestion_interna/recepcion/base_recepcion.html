@@ -1,0 +1,22 @@
+{% extends "base/base.html" %}
+{% block cuerpo %}
+<div class="panel">
+  <nav class="menu" aria-label="Menú administrativo">
+    <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
+    <div class="menu-usuario">
+      <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+      <span class="muted small">Personal administrativo</span>
+    </div>
+    <div class="menu-lista">
+      <a class="menu-item" href="{% url 'recepcion:dashboard' %}#resumen" {% if seccion == 'resumen' %}aria-current="page"{% endif %}>Resumen</a>
+      <a class="menu-item" href="{% url 'recepcion:dashboard' %}#agenda">Agenda del día</a>
+      <a class="menu-item" href="{% url 'recepcion:dashboard' %}#recordatorios" {% if seccion == 'recordatorios' %}aria-current="page"{% endif %}>Recordatorios</a>
+    </div>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>
+  </nav>
+  <main class="contenido">
+    {% for m in messages %}<p class="{% if m.level_tag == 'error' %}alerta-error{% else %}alerta-ok{% endif %}" role="status">{{ m }}</p>{% endfor %}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
