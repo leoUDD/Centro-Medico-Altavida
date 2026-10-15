@@ -1,0 +1,63 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Diagnósticos y tratamientos{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Diagnósticos y tratamientos</h1>
+    <p class="muted" style="font-size: 15px;">Historial clínico del paciente, del más reciente al más antiguo.</p>
+  </div>
+  <a href="{% url 'fichas:nuevo_diagnostico' paciente.pk %}" class="btn btn-primario">+ Registrar diagnóstico</a>
+</div>
+
+{% include "gestion_interna/fichas/_banda_paciente.html" %}
+
+<form method="get" role="search" class="tarjeta tarjeta-pad filtros">
+  <div class="campo ancho">
+    <label for="q">Buscar en el historial</label>
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="Diagnóstico, código CIE-10 o medicamento" autocomplete="off">
+  </div>
+  <div class="campo">
+    <label for="estado">Estado</label>
+    <select id="estado" name="estado">
+      <option value="">Todos</option>
+      {% for valor, nombre in estados %}<option value="{{ valor }}" {% if valor == estado %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="periodo">Período</label>
+    <select id="periodo" name="periodo">
+      {% for valor, nombre in periodos %}<option value="{{ valor }}" {% if valor == periodo %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primario">Filtrar</button>
+</form>
+
+<ol class="linea" aria-label="Diagnósticos del paciente">
+  {% for d in diagnosticos %}
+  <li>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span class="mono">{{ d.fecha|date:"d-m-Y" }}</span>
+      <span class="muted small">Consulta</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline;">
+        {% if d.codigo_cie10 %}<span class="mono" style="font-weight: 500;">{{ d.codigo_cie10 }}</span>{% endif %}
+        <strong>{{ d.diagnostico }}</strong>
+      </div>
+      {% if d.tratamiento %}<p class="texto-libre" style="font-size: 15px;"><span class="muted">Tratamiento:</span> {{ d.tratamiento }}</p>{% endif %}
+      {% if d.medicamentos %}<p class="texto-libre" style="font-size: 15px;"><span class="muted">Medicamentos:</span> {{ d.medicamentos }}</p>{% endif %}
+      <span class="muted small">{{ d.medico.get_full_name|default:d.medico.get_username }}{% if d.medico.especialidad %} · {{ d.medico.especialidad }}{% endif %}</span>
+    </div>
+    <div>
+      {% if d.estado == 'RESUELTO' %}
+        <span class="estado estado-resuelto"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ d.get_estado_display }}</span>
+      {% else %}
+        <span class="estado estado-tratamiento">{{ d.get_estado_display }}</span>
+      {% endif %}
+    </div>
+  </li>
+  {% empty %}
+  <li style="display: block;"><p class="muted">{% if filtrado %}Ningún diagnóstico coincide con los filtros. Prueba con el período “Todo”.{% else %}Este paciente aún no tiene diagnósticos en los últimos 12 meses.{% endif %}</p></li>
+  {% endfor %}
+</ol>
+{% endblock %}

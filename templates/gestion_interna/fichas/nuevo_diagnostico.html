@@ -1,0 +1,34 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Registrar diagnóstico{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Registrar diagnóstico</h1>
+    <p class="muted" style="font-size: 15px;">Se agrega al historial con tu nombre y la fecha de hoy.</p>
+  </div>
+</div>
+
+{% include "gestion_interna/fichas/_banda_paciente.html" %}
+
+<form method="post" class="pila tarjeta tarjeta-lg" novalidate style="max-width: 720px;">
+  {% csrf_token %}
+  {% if form.errors %}<p class="alerta-error" role="alert">Revisa los campos marcados.</p>{% endif %}
+  <fieldset>
+    <legend>Diagnóstico</legend>
+    <div class="rejilla">
+      {% include "base/_campo.html" with campo=form.codigo_cie10 requerido=True mono=True ayuda="Por ejemplo E11.9 o J06." %}
+      {% include "base/_campo.html" with campo=form.estado requerido=True %}
+    </div>
+    {% include "base/_campo.html" with campo=form.diagnostico requerido=True %}
+  </fieldset>
+  <fieldset>
+    <legend>Tratamiento <span class="chip" style="font-size: 12px; vertical-align: middle;">Se guarda cifrado</span></legend>
+    {% include "base/_campo.html" with campo=form.tratamiento %}
+    {% include "base/_campo.html" with campo=form.medicamentos %}
+  </fieldset>
+  <div class="acciones">
+    <a href="{% url 'fichas:historial' paciente.pk %}" class="btn btn-grande">Cancelar</a>
+    <button type="submit" class="btn btn-primario btn-grande">Guardar diagnóstico</button>
+  </div>
+</form>
+{% endblock %}

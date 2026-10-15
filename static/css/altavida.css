@@ -115,3 +115,34 @@ tr.seleccionada td { background: var(--brand-tint); }
 .dos-col > .principal { flex: 2 1 520px; min-width: 0; }
 .dos-col > .lateral { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 .texto-libre { white-space: pre-line; overflow-wrap: anywhere; }
+
+/* Paciente seleccionado y línea de diagnósticos */
+.paciente-banda { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.paciente-banda .quien { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--brand-tint); color: var(--brand); font-weight: 700;
+  display: flex; align-items: center; justify-content: center; }
+.filtros { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.filtros .campo { flex: 0 1 200px; }
+.filtros .campo.ancho { flex: 1 1 320px; }
+.linea { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.linea li { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+  display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 16px; }
+@media (max-width: 700px) { .linea li { grid-template-columns: 1fr; } }
+.estado { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 700; height: fit-content; }
+.estado-tratamiento { background: #FEF3E2; color: var(--warning); }
+.estado-resuelto { background: #E5F4EB; color: var(--success); }
+
+/* Resultados de exámenes */
+.lista-examenes { display: flex; flex-direction: column; }
+.examen { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-top: 1px solid var(--border);
+  text-decoration: none; color: var(--ink); }
+.examen:hover { background: var(--surface); color: var(--ink); }
+.examen[aria-current=true] { background: var(--brand-tint); }
+.examen .fila { display: flex; justify-content: space-between; gap: 8px; }
+.segmentos { display: flex; gap: 8px; flex-wrap: wrap; }
+.segmento { min-height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised);
+  color: var(--ink); font: 700 13px var(--sans); text-decoration: none; display: inline-flex; align-items: center; }
+.segmento[aria-pressed=true] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.valor-alto { background: var(--danger-tint); color: var(--danger); }
+.valor-normal { background: #E5F4EB; color: var(--success); }
+.valor-bajo { background: #FEF3E2; color: var(--warning); }

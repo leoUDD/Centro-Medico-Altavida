@@ -1,0 +1,90 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Resultados de exámenes{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Resultados de exámenes</h1>
+    <p class="muted" style="font-size: 15px;">Revisa los exámenes de laboratorio del paciente seleccionado.</p>
+  </div>
+</div>
+
+{% include "gestion_interna/fichas/_banda_paciente.html" %}
+
+<div class="dos-col">
+  <section class="tarjeta lateral" aria-labelledby="ordenes" style="gap: 0; overflow: hidden; flex: 1 1 300px; max-width: 380px;">
+    <div class="tarjeta-pad" style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="ordenes">Exámenes</h2>
+      <div class="segmentos" role="group" aria-label="Filtrar por estado">
+        <a class="segmento" href="?" aria-pressed="{% if not filtro %}true{% else %}false{% endif %}">Todos ({{ total }})</a>
+        <a class="segmento" href="?estado=DISPONIBLE" aria-pressed="{% if filtro == 'DISPONIBLE' %}true{% else %}false{% endif %}">Disponibles ({{ disponibles }})</a>
+        <a class="segmento" href="?estado=PENDIENTE" aria-pressed="{% if filtro == 'PENDIENTE' %}true{% else %}false{% endif %}">Pendientes ({{ pendientes }})</a>
+      </div>
+    </div>
+    <div class="lista-examenes">
+      {% for r in lista %}
+      <a class="examen" href="?e={{ r.pk }}{% if filtro %}&amp;estado={{ filtro }}{% endif %}" {% if r == seleccionado %}aria-current="true"{% endif %}>
+        <span class="fila"><strong>{{ r.tipo_examen }}</strong><span class="mono muted">{{ r.fecha_toma|default:r.fecha|date:"d-m-Y" }}</span></span>
+        {% if r.estado == 'DISPONIBLE' %}
+          {% if r.fuera_de_rango %}
+            <span class="small" style="color: var(--danger); font-weight: 700;">Disponible · {{ r.fuera_de_rango }} valor{{ r.fuera_de_rango|pluralize:"es" }} fuera de rango</span>
+          {% else %}
+            <span class="small" style="color: var(--success); font-weight: 700;">Disponible · todo en rango</span>
+          {% endif %}
+        {% else %}
+          <span class="small" style="color: var(--warning); font-weight: 700;">Pendiente · en proceso</span>
+        {% endif %}
+      </a>
+      {% empty %}
+      <p class="tarjeta-pad muted" style="border-top: 1px solid var(--border);">No hay exámenes {% if filtro %}con este estado{% else %}registrados para este paciente{% endif %}.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if seleccionado %}
+  <section class="tarjeta principal" aria-labelledby="detalle" style="flex: 2 1 520px;">
+    <div class="tarjeta-pad barra" style="border-bottom: 1px solid var(--border); align-items: flex-start;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <h2 id="detalle">{{ seleccionado.tipo_examen }}</h2>
+        <span class="muted" style="font-size: 14px;">
+          {% if seleccionado.fecha_toma %}Toma de muestra <span class="mono">{{ seleccionado.fecha_toma|date:"d-m-Y H:i" }}</span>{% else %}Muestra aún no tomada{% endif %}
+          · {{ seleccionado.laboratorio }}{% if seleccionado.validado_por %} · Validado por {{ seleccionado.validado_por }}{% endif %}
+        </span>
+      </div>
+    </div>
+
+    {% if parametros %}
+    <div class="tabla-scroll">
+      <table>
+        <thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Referencia</th><th>Estado</th></tr></thead>
+        <tbody>
+        {% for p in parametros %}
+          <tr>
+            <td>{{ p.nombre }}</td>
+            <td class="mono" style="font-weight: 500;">{{ p.valor }}</td>
+            <td class="muted">{{ p.unidad }}</td>
+            <td class="mono">{{ p.referencia }}</td>
+            <td><span class="estado {% if p.estado == 'Alto' %}valor-alto{% elif p.estado == 'Bajo' %}valor-bajo{% else %}valor-normal{% endif %}">{{ p.estado }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="tarjeta-pad muted">{% if seleccionado.estado == 'PENDIENTE' %}El laboratorio aún no entrega este resultado.{% else %}Este examen no tiene valores registrados.{% endif %}</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'laboratorio:observacion' seleccionado.pk %}" class="tarjeta-pad" style="border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+      {% csrf_token %}
+      <div class="campo">
+        <label for="obs">Observación del médico</label>
+        <textarea id="obs" name="observacion" rows="3" maxlength="2000" placeholder="Agrega una interpretación o indicación para la ficha">{{ seleccionado.observacion_medico }}</textarea>
+      </div>
+      <div class="acciones">
+        <a href="{% url 'recetas:nueva' paciente.pk %}" class="btn">Emitir receta</a>
+        <button type="submit" class="btn btn-primario">Guardar en la ficha</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

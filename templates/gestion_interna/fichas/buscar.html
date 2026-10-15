@@ -1,0 +1,80 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Consultar ficha{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Consultar ficha</h1>
+    <p class="muted" style="font-size: 15px;">Busca la ficha clínica de un paciente por RUT o nombre.</p>
+  </div>
+  <a href="{% url 'fichas:nueva' %}" class="btn">+ Nueva ficha</a>
+</div>
+
+<form method="get" role="search" class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 8px;">
+  <label for="buscar" class="small" style="font-weight: 700;">Buscar paciente</label>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <div class="campo" style="flex: 1 1 320px;"><input id="buscar" name="q" type="search" value="{{ consulta }}" placeholder="12.345.678-5 o nombre" autocomplete="off"></div>
+    <button type="submit" class="btn btn-primario">Buscar</button>
+  </div>
+</form>
+
+{% if consulta %}
+<div class="dos-col">
+  <section class="tarjeta principal" aria-labelledby="res" style="overflow: hidden;">
+    <div class="tarjeta-pad barra" style="border-bottom: 1px solid var(--border);">
+      <h2 id="res">Resultados</h2>
+      <span class="muted" style="font-size: 14px;">{{ resultados|length }} paciente{{ resultados|length|pluralize }} coincide{{ resultados|length|pluralize:"n" }} con “{{ consulta }}”</span>
+    </div>
+    {% if resultados %}
+    <div class="tabla-scroll">
+      <table>
+        <thead><tr><th>Paciente</th><th>RUT</th><th>Edad</th><th><span class="sr-only">Acción</span></th></tr></thead>
+        <tbody>
+        {% for p in resultados %}
+          <tr {% if p == seleccionado %}class="seleccionada"{% endif %}>
+            <td {% if p == seleccionado %}style="font-weight: 700;"{% endif %}><a href="?q={{ consulta|urlencode }}&amp;p={{ p.pk }}" style="color: inherit; text-decoration: none;">{{ p.nombre_completo }}</a></td>
+            <td class="mono" style="white-space: nowrap;">{{ p.rut_formateado }}</td>
+            <td>{{ p.edad|default:"—" }}</td>
+            <td style="text-align: right;"><a href="{% url 'fichas:detalle' p.pk %}" style="font-weight: 700; white-space: nowrap;">Ver ficha</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="tarjeta-pad muted">No encontramos pacientes con esa búsqueda. Puedes <a href="{% url 'fichas:nueva' %}">crear una ficha nueva</a>.</p>
+    {% endif %}
+  </section>
+
+  {% if seleccionado %}
+  <aside class="tarjeta tarjeta-pad lateral" aria-labelledby="prev">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span class="small muted" style="font-weight: 700;">Vista rápida de la ficha</span>
+      <h2 id="prev">{{ seleccionado.nombre_completo }}</h2>
+      <span class="mono">{{ seleccionado.rut_formateado }}</span>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      {% if historial.alergias %}<span class="chip chip-alerta">Alergia: {{ historial.alergias|truncatechars:40 }}</span>{% endif %}
+      {% if cobertura %}<span class="chip">{{ cobertura.prevision }}</span>{% endif %}
+    </div>
+    <dl class="dl-rejilla">
+      <div><dt>Edad</dt><dd>{{ seleccionado.edad|default:"—" }}{% if seleccionado.edad %} años{% endif %}</dd></div>
+      <div><dt>Grupo sanguíneo</dt><dd>{{ seleccionado.grupo_sanguineo|default:"—" }}</dd></div>
+      <div><dt>Fecha de nacimiento</dt><dd class="mono" style="font-weight: 400;">{{ seleccionado.fecha_nacimiento }}</dd></div>
+      <div><dt>Teléfono</dt><dd class="mono" style="font-weight: 400;">{{ seleccionado.telefono_oculto|default:"—" }}</dd></div>
+    </dl>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span class="small" style="font-weight: 700;">Diagnósticos recientes</span>
+      {% for d in diagnosticos %}
+        <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 14px;"><span>{{ d.diagnostico }}</span><span class="muted mono" style="white-space: nowrap;">{{ d.fecha|date:"d-m-Y" }}</span></div>
+      {% empty %}<span class="muted" style="font-size: 14px;">Sin diagnósticos registrados.</span>{% endfor %}
+    </div>
+    <a href="{% url 'fichas:detalle' seleccionado.pk %}" class="btn btn-primario">Abrir ficha completa</a>
+    <a href="{% url 'fichas:historial' seleccionado.pk %}" class="btn">Diagnósticos y tratamientos</a>
+    <a href="{% url 'laboratorio:examenes' seleccionado.pk %}" class="btn">Resultados de exámenes</a>
+    <a href="{% url 'recetas:nueva' seleccionado.pk %}" class="btn">Emitir receta</a>
+    <p class="muted small">Tu acceso a esta ficha queda registrado en la bitácora.</p>
+  </aside>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

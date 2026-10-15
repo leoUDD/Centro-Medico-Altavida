@@ -1,0 +1,24 @@
+{% extends "base/base.html" %}
+{% block cuerpo %}
+<div class="panel">
+  <nav class="menu" aria-label="Menú del médico">
+    <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
+    <div class="menu-usuario">
+      <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+      <span class="muted small">Médico</span>
+    </div>
+    <div class="menu-lista">
+      <a class="menu-item" href="{% url 'fichas:buscar' %}" {% if seccion == 'buscar' %}aria-current="page"{% endif %}>Consultar ficha</a>
+      <a class="menu-item" href="{% url 'fichas:nueva' %}" {% if seccion == 'nueva' %}aria-current="page"{% endif %}>Nueva ficha</a>
+      <a class="menu-item" href="{% url 'fichas:buscar' %}" {% if seccion == 'examenes' %}aria-current="page"{% endif %} title="Elige primero un paciente">Resultados de exámenes</a>
+      <a class="menu-item" href="{% url 'fichas:buscar' %}" {% if seccion == 'recetas' %}aria-current="page"{% endif %} title="Elige primero un paciente">Emitir receta</a>
+      <a class="menu-item" href="{% url 'fichas:buscar' %}" {% if seccion == 'diagnosticos' %}aria-current="page"{% endif %} title="Elige primero un paciente">Diagnósticos y tratamientos</a>
+    </div>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>
+  </nav>
+  <main class="contenido">
+    {% for m in messages %}<p class="alerta-ok" role="status">{{ m }}</p>{% endfor %}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

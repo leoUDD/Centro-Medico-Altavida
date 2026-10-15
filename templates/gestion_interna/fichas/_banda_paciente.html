@@ -1,0 +1,11 @@
+<div class="tarjeta tarjeta-pad paciente-banda">
+  <div class="quien">
+    <span class="avatar" aria-hidden="true">{{ paciente.nombres|slice:":1" }}{{ paciente.apellidos|slice:":1" }}</span>
+    <div style="display: flex; flex-direction: column;">
+      <strong>{{ paciente.nombre_completo }}</strong>
+      <span class="muted" style="font-size: 14px;"><span class="mono">{{ paciente.rut_formateado }}</span>{% if paciente.edad %} · {{ paciente.edad }} años{% endif %}{% if cobertura %} · {{ cobertura.prevision }}{% endif %}</span>
+    </div>
+    {% if historial.alergias %}<span class="chip chip-alerta">Alergia: {{ historial.alergias|truncatechars:40 }}</span>{% endif %}
+  </div>
+  <a href="{% url 'fichas:buscar' %}" style="font-weight: 700;">Cambiar paciente</a>
+</div>
