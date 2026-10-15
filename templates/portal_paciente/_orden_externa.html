@@ -1,0 +1,7 @@
+{% if orden_elegida == 'externa' %}
+<div class="campo">
+  <label for="archivo">Adjunta tu orden médica</label>
+  <input id="archivo" name="archivo" type="file" accept="application/pdf,image/jpeg,image/png">
+  <span class="ayuda">PDF o foto (JPG, PNG), máximo 5 MB. Se guarda cifrada.</span>
+</div>
+{% endif %}

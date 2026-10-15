@@ -1,0 +1,26 @@
+{% extends "base/base.html" %}
+{% block cuerpo %}
+<div class="panel">
+  <nav class="menu" aria-label="Menú del paciente">
+    <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
+    <div class="menu-usuario">
+      <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+      <span class="muted small">Paciente</span>
+    </div>
+    <div class="menu-lista">
+      <a class="menu-item" href="{% url 'agenda:consulta' %}" {% if seccion == 'consulta' %}aria-current="page"{% endif %}>Agendar consulta</a>
+      <a class="menu-item" href="{% url 'agenda:examen' %}" {% if seccion == 'examen' %}aria-current="page"{% endif %}>Agendar examen</a>
+      <a class="menu-item" href="{% url 'pacientes:resultados' %}" {% if seccion == 'resultados' %}aria-current="page"{% endif %}>Mis resultados</a>
+      <a class="menu-item" href="{% url 'notificaciones:lista' %}" {% if seccion == 'notificaciones' %}aria-current="page"{% endif %}>
+        Notificaciones
+        {% if notificaciones_sin_leer %}<span class="chip" style="margin-left: auto; background: var(--brand); color: #fff; border-color: transparent;">{{ notificaciones_sin_leer }}<span class="sr-only"> sin leer</span></span>{% endif %}
+      </a>
+    </div>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>
+  </nav>
+  <main class="contenido">
+    {% for m in messages %}<p class="alerta-ok" role="status">{{ m }}</p>{% endfor %}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

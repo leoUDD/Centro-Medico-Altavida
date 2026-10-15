@@ -1,0 +1,77 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Mis resultados{% endblock %}
+{% block contenido %}
+<div>
+  <h1>Mis resultados de exámenes</h1>
+  <p class="muted" style="font-size: 15px;">Tus resultados aparecen aquí cuando el laboratorio los valida.</p>
+</div>
+
+{% if seleccionado %}
+<section class="tarjeta" aria-labelledby="actual">
+  <div class="tarjeta-pad barra" style="border-bottom: 1px solid var(--border); align-items: flex-start;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <h2 id="actual">{{ seleccionado.tipo_examen }}</h2>
+      <span class="muted" style="font-size: 14px;">
+        {% if seleccionado.fecha_toma %}Muestra tomada el <span class="mono">{{ seleccionado.fecha_toma|date:"d-m-Y" }}</span>{% endif %}
+        {% if seleccionado.solicitado_por %} · Solicitado por {{ seleccionado.solicitado_por.get_full_name|default:seleccionado.solicitado_por.get_username }}{% endif %}
+      </span>
+    </div>
+    <span class="estado valor-normal">Disponible</span>
+  </div>
+  {% if parametros %}
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>Medición</th><th>Tu resultado</th><th>Valor esperado</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for p in parametros %}
+        <tr>
+          <td>{{ p.nombre }}</td>
+          <td class="mono" style="font-weight: 500;">{{ p.valor }} {{ p.unidad }}</td>
+          <td class="muted">{{ p.esperado }}</td>
+          <td>
+            {% if p.estado == 'Alto' %}<span class="estado valor-alto">Sobre lo esperado</span>
+            {% elif p.estado == 'Bajo' %}<span class="estado valor-bajo">Bajo lo esperado</span>
+            {% else %}<span class="estado valor-normal">Dentro de lo esperado</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <div class="tarjeta-pad" style="border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px;">
+    <strong>Tu médico revisará estos resultados</strong>
+    <span class="muted" style="font-size: 14px;">No cambies ni suspendas tu tratamiento sin consultarlo. Si tienes dudas, agenda un control.</span>
+  </div>
+</section>
+{% elif not hay_examenes %}
+<p class="tarjeta tarjeta-pad muted">Aún no tienes exámenes registrados.</p>
+{% else %}
+<p class="tarjeta tarjeta-pad muted">Tus exámenes están en proceso. Te avisaremos cuando estén listos.</p>
+{% endif %}
+
+{% if otros %}
+<section aria-labelledby="otros" style="display: flex; flex-direction: column; gap: 12px;">
+  <h2 id="otros">Otros exámenes</h2>
+  {% for r in otros %}
+  <div class="tarjeta tarjeta-pad barra">
+    <div style="display: flex; flex-direction: column;">
+      <strong>{{ r.tipo_examen }}</strong>
+      <span class="muted" style="font-size: 14px;">
+        {% if r.estado == 'DISPONIBLE' %}<span class="mono">{{ r.fecha_toma|default:r.fecha|date:"d-m-Y" }}</span>
+        {% else %}{% if r.fecha_toma %}Muestra del <span class="mono">{{ r.fecha_toma|date:"d-m-Y" }}</span>{% endif %}{% if r.fecha_estimada %} · listo aprox. el <span class="mono">{{ r.fecha_estimada|date:"d-m-Y" }}</span>{% endif %}{% endif %}
+      </span>
+    </div>
+    {% if r.estado == 'DISPONIBLE' %}
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="estado valor-normal">Disponible</span>
+        <a href="?e={{ r.pk }}" class="btn" aria-label="Ver resultado de {{ r.tipo_examen }}">Ver resultado</a>
+      </div>
+    {% else %}
+      <span class="estado valor-bajo">En proceso</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

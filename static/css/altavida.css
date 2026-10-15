@@ -146,3 +146,18 @@ tr.seleccionada td { background: var(--brand-tint); }
 .valor-alto { background: var(--danger-tint); color: var(--danger); }
 .valor-normal { background: #E5F4EB; color: var(--success); }
 .valor-bajo { background: #FEF3E2; color: var(--warning); }
+
+/* Calendario de agendamiento */
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-cab { text-align: center; font-size: 13px; font-weight: 700; color: var(--ink-muted); padding: 4px 0; }
+.cal-dia { height: 44px; border-radius: 8px; font: 700 15px var(--sans); background: #fff; color: var(--ink);
+  border: 1px solid var(--border); cursor: pointer; }
+.cal-dia:hover:not(:disabled) { border-color: var(--brand); }
+.cal-dia:disabled { background: transparent; color: var(--ink-muted); border-color: transparent; font-weight: 400;
+  text-decoration: line-through; cursor: not-allowed; }
+.cal-dia[aria-pressed=true] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.horas { display: flex; flex-wrap: wrap; gap: 8px; }
+.hora { height: 44px; padding: 0 16px; border-radius: 8px; font: 500 14px var(--mono); background: #fff; color: var(--ink);
+  border: 1px solid var(--ink-muted); cursor: pointer; }
+.hora:hover { border-color: var(--brand); }
+.hora[aria-pressed=true] { background: var(--brand); border-color: var(--brand); color: #fff; }

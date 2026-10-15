@@ -1,0 +1,67 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Notificaciones{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Notificaciones</h1>
+    <p class="muted" style="font-size: 15px;">Recordatorios de tus citas y avisos de resultados.</p>
+  </div>
+  <form method="post" action="{% url 'notificaciones:marcar_todas' %}" style="margin: 0;">
+    {% csrf_token %}
+    <button type="submit" class="btn" {% if not sin_leer %}disabled{% endif %}>Marcar todas como leídas</button>
+  </form>
+</div>
+
+<div class="dos-col">
+  <section class="principal" aria-label="Lista de notificaciones" style="display: flex; flex-direction: column; gap: 12px;">
+    <div class="segmentos" role="group" aria-label="Filtrar">
+      <a class="segmento" href="?" aria-pressed="{% if not filtro %}true{% else %}false{% endif %}">Todas</a>
+      <a class="segmento" href="?f=sin-leer" aria-pressed="{% if filtro == 'sin-leer' %}true{% else %}false{% endif %}">Sin leer ({{ sin_leer }})</a>
+      <a class="segmento" href="?f=citas" aria-pressed="{% if filtro == 'citas' %}true{% else %}false{% endif %}">Citas</a>
+      <a class="segmento" href="?f=resultados" aria-pressed="{% if filtro == 'resultados' %}true{% else %}false{% endif %}">Resultados</a>
+    </div>
+    {% for a in avisos %}
+    <article class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 8px;{% if not a.leida %} border-color: var(--brand);{% endif %}">
+      <div class="barra" style="align-items: flex-start;">
+        <h2 style="font-size: 16px; line-height: 24px;">{{ a.titulo }}</h2>
+        <span class="muted small" style="white-space: nowrap;">{% if not a.leida %}<strong style="color: var(--brand);">Sin leer</strong> · {% endif %}{{ a.cuando }}</span>
+      </div>
+      {% if a.detalle %}<p style="font-size: 15px;">{{ a.detalle }}</p>{% endif %}
+      {% if a.cita and a.cita.vigente and a.cita.inicio > ahora %}
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        {% if a.cita.estado == 'AGENDADA' %}
+        <form method="post" action="{% url 'agenda:confirmar' a.cita.pk %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn btn-primario">Confirmar asistencia</button></form>
+        {% else %}<span class="estado valor-normal">Asistencia confirmada</span>{% endif %}
+        <a href="{% if a.cita.tipo == 'EXAMEN' %}{% url 'agenda:examen' %}{% else %}{% url 'agenda:consulta' %}{% endif %}?reprogramar={{ a.cita.pk }}" style="font-weight: 700;">Cambiar hora</a>
+        <form method="post" action="{% url 'agenda:cancelar' a.cita.pk %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn">Cancelar hora</button></form>
+      </div>
+      {% endif %}
+      {% if a.tipo == 'RESULTADO' %}<a href="{% url 'pacientes:resultados' %}" style="font-weight: 700; font-size: 15px;">Ver resultados</a>{% endif %}
+    </article>
+    {% empty %}
+    <p class="tarjeta tarjeta-pad muted">No tienes notificaciones{% if filtro %} en esta categoría{% endif %}.</p>
+    {% endfor %}
+  </section>
+
+  <aside class="lateral" aria-labelledby="pref">
+    <form method="post" action="{% url 'notificaciones:preferencias' %}" class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 16px;">
+      {% csrf_token %}
+      <h2 id="pref">Cómo quieres que te avisemos</h2>
+      <fieldset>
+        <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Canales</legend>
+        <label class="casilla"><input type="checkbox" name="canal_correo" {% if preferencias.canal_correo %}checked{% endif %}><span>Correo electrónico</span></label>
+        <label class="casilla"><input type="checkbox" name="canal_sms" {% if preferencias.canal_sms %}checked{% endif %}><span>SMS al <span class="mono">{{ paciente.telefono_oculto|default:"tu celular" }}</span></span></label>
+        <label class="casilla"><input type="checkbox" name="canal_navegador" {% if preferencias.canal_navegador %}checked{% endif %}><span>Notificaciones en el navegador</span></label>
+      </fieldset>
+      <fieldset>
+        <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Recordarme</legend>
+        <label class="casilla"><input type="checkbox" name="recordar_48h" {% if preferencias.recordar_48h %}checked{% endif %}><span>48 horas antes</span></label>
+        <label class="casilla"><input type="checkbox" name="recordar_24h" {% if preferencias.recordar_24h %}checked{% endif %}><span>24 horas antes</span></label>
+        <label class="casilla"><input type="checkbox" name="recordar_2h" {% if preferencias.recordar_2h %}checked{% endif %}><span>2 horas antes</span></label>
+      </fieldset>
+      <p class="muted small">Los avisos no incluyen diagnósticos ni resultados: solo te indican que hay algo nuevo en tu cuenta.</p>
+      <button type="submit" class="btn btn-primario">Guardar preferencias</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}
