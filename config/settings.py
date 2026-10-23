@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
-import base64
 import os
 from pathlib import Path
 
@@ -157,12 +156,29 @@ MAILERS = {
 
 
 # Seguridad de datos personales
+# Tres llaves con propósitos distintos (ver apps/seguridad/llaves.py). Se leen del entorno, nunca de la base de datos.
 
-CLAVE_CIFRADO = os.environ.get('CLAVE_CIFRADO', '')
-if len(base64.urlsafe_b64decode(CLAVE_CIFRADO or '=')) != 32:
-    raise ImproperlyConfigured(
-        'Falta CLAVE_CIFRADO en el entorno (.env): debe ser una llave de 32 bytes en base64.'
-    )
+from apps.seguridad.llaves import decodificar  # noqa: E402
+
+
+def _llave_obligatoria(nombre):
+    valor = os.environ.get(nombre, '')
+    if not valor:
+        raise ImproperlyConfigured(f'Falta {nombre} en el entorno (.env).')
+    decodificar(valor, nombre)
+    return valor
+
+
+CLAVE_CIFRADO = _llave_obligatoria('CLAVE_CIFRADO')
+CLAVE_IDENTIDAD = _llave_obligatoria('CLAVE_IDENTIDAD')
+CLAVE_INDICES = _llave_obligatoria('CLAVE_INDICES')
+if len({CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES}) != 3:
+    raise ImproperlyConfigured('CLAVE_CIFRADO, CLAVE_IDENTIDAD y CLAVE_INDICES deben ser distintas entre sí.')
+
+LLAVES_CIFRADO = {
+    'clinica': {'actual': CLAVE_CIFRADO, 'anterior': os.environ.get('CLAVE_CIFRADO_ANTERIOR', '')},
+    'identidad': {'actual': CLAVE_IDENTIDAD, 'anterior': os.environ.get('CLAVE_IDENTIDAD_ANTERIOR', '')},
+}
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
