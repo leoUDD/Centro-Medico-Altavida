@@ -175,6 +175,9 @@ CLAVE_INDICES = _llave_obligatoria('CLAVE_INDICES')
 if len({CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES}) != 3:
     raise ImproperlyConfigured('CLAVE_CIFRADO, CLAVE_IDENTIDAD y CLAVE_INDICES deben ser distintas entre sí.')
 
+# Solo para migrar datos cifrados antes del refuerzo del cifrado (ver manage.py rotar_llaves).
+CIFRADO_FORMATO_ANTERIOR = os.environ.get('CIFRADO_FORMATO_ANTERIOR', '') == '1'
+
 LLAVES_CIFRADO = {
     'clinica': {'actual': CLAVE_CIFRADO, 'anterior': os.environ.get('CLAVE_CIFRADO_ANTERIOR', '')},
     'identidad': {'actual': CLAVE_IDENTIDAD, 'anterior': os.environ.get('CLAVE_IDENTIDAD_ANTERIOR', '')},
