@@ -30,7 +30,6 @@ class Diagnostico(models.Model):
     codigo_cie10 = CampoCifrado(blank=True)
     diagnostico = CampoCifrado()
     tratamiento = CampoCifrado(blank=True)
-    medicamentos = CampoCifrado(blank=True)
     estado = models.CharField(max_length=15, choices=Estado.choices, default=Estado.EN_TRATAMIENTO)
 
     fecha = models.DateTimeField(auto_now_add=True)
@@ -52,6 +51,7 @@ class AccesoFicha(models.Model):
         DIAGNOSTICO = 'REGISTRO', 'Registro de diagnóstico'
         OBSERVACION = 'OBSERVACION', 'Observación de examen'
         RECETA = 'RECETA', 'Emisión de receta'
+        EMERGENCIA = 'EMERGENCIA', 'Acceso de emergencia'
 
     paciente = models.ForeignKey('pacientes.Paciente', on_delete=models.CASCADE, related_name='accesos')
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='accesos_fichas')

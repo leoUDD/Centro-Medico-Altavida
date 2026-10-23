@@ -24,7 +24,6 @@
   <fieldset>
     <legend>Tratamiento <span class="chip" style="font-size: 12px; vertical-align: middle;">Se guarda cifrado</span></legend>
     {% include "base/_campo.html" with campo=form.tratamiento %}
-    {% include "base/_campo.html" with campo=form.medicamentos %}
   </fieldset>
   <div class="acciones">
     <a href="{% url 'fichas:historial' paciente.pk %}" class="btn btn-grande">Cancelar</a>

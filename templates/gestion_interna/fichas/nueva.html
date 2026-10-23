@@ -17,7 +17,7 @@
       {% include "base/_campo.html" with campo=form.apellidos requerido=True %}
       {% include "base/_campo.html" with campo=form.rut requerido=True mono=True %}
       {% include "base/_campo.html" with campo=form.fecha_nacimiento requerido=True %}
-      {% include "base/_campo.html" with campo=form.sexo requerido=True %}
+      {% include "base/_campo.html" with campo=form.sexo ayuda="Opcional." %}
       {% include "base/_campo.html" with campo=form.prevision requerido=True %}
     </div>
   </fieldset>
@@ -26,8 +26,6 @@
     <div class="rejilla">
       {% include "base/_campo.html" with campo=form.email %}
       {% include "base/_campo.html" with campo=form.telefono requerido=True %}
-      {% include "base/_campo.html" with campo=form.direccion %}
-      {% include "base/_campo.html" with campo=form.comuna %}
     </div>
   </fieldset>
   <fieldset>

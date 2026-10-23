@@ -58,7 +58,7 @@
         <p id="vp-ind" class="texto-libre muted" style="font-size: 14px;"></p>
       </div>
       <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column;">
-        <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+        <strong>{{ user.nombre_visible }}</strong>
         <span class="muted small">{{ user.especialidad|default:"Médico" }} · Firma electrónica al emitir</span>
       </div>
     </div>

@@ -11,6 +11,7 @@ INICIO_POR_ROL = {
     'MEDICO': 'fichas:buscar',
     'PACIENTE': 'pacientes:resultados',
     'ADMINISTRATIVO': 'recepcion:dashboard',
+    'ADMIN_SISTEMA': 'admin:index',
 }
 
 

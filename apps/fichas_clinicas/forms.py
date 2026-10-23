@@ -9,7 +9,7 @@ from apps.seguridad.rut import normalizar_rut, rut_valido
 
 from .models import Diagnostico
 
-SEXOS = [('', 'Selecciona'), ('F', 'Femenino'), ('M', 'Masculino')]
+SEXOS = [('', 'No informa'), ('F', 'Femenino'), ('M', 'Masculino')]
 GRUPOS = [('', 'Desconocido')] + [(g, g) for g in ('O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-')]
 
 
@@ -22,13 +22,11 @@ class NuevaFichaForm(forms.Form):
     apellidos = forms.CharField(label='Apellidos', max_length=100)
     rut = forms.CharField(label='RUT', max_length=12)
     fecha_nacimiento = forms.DateField(label='Fecha de nacimiento', widget=forms.DateInput(attrs={'type': 'date'}))
-    sexo = forms.ChoiceField(label='Sexo registral', choices=SEXOS)
+    sexo = forms.ChoiceField(label='Sexo registral', choices=SEXOS, required=False)
     prevision = forms.ModelChoiceField(label='Previsión', queryset=Prevision.objects.none(), empty_label='Selecciona')
 
     email = forms.EmailField(label='Correo electrónico', required=False)
     telefono = forms.CharField(label='Teléfono', max_length=20)
-    direccion = forms.CharField(label='Dirección', max_length=200, required=False)
-    comuna = forms.CharField(label='Comuna', max_length=80, required=False)
 
     grupo_sanguineo = forms.ChoiceField(label='Grupo sanguíneo', choices=GRUPOS, required=False)
     peso = forms.DecimalField(label='Peso (kg)', required=False, min_value=0, max_value=500, decimal_places=1)
@@ -50,7 +48,7 @@ class NuevaFichaForm(forms.Form):
         rut = self.cleaned_data['rut']
         if not rut_valido(rut):
             raise forms.ValidationError('El RUT no es válido. Revisa el dígito verificador.')
-        if Paciente.objects.filter(rut_indice=indice_rut(rut)).exists():
+        if Paciente.objects.filter(identidad__rut_indice=indice_rut(rut)).exists():
             raise forms.ValidationError('Ya existe una ficha para este RUT.')
         return normalizar_rut(rut)
 
@@ -59,7 +57,6 @@ class DiagnosticoForm(forms.Form):
     codigo_cie10 = forms.CharField(label='Código CIE-10', max_length=8)
     diagnostico = forms.CharField(label='Diagnóstico', max_length=300)
     tratamiento = _area('Tratamiento', required=False)
-    medicamentos = _area('Medicamentos indicados', required=False)
     estado = forms.ChoiceField(label='Estado', choices=Diagnostico.Estado.choices)
 
     def clean_codigo_cie10(self):
@@ -67,3 +64,10 @@ class DiagnosticoForm(forms.Form):
         if not re.fullmatch(r'[A-Z]\d{2}(\.\d{1,2})?', codigo):
             raise forms.ValidationError('Usa el formato CIE-10, por ejemplo E11.9 o J06.')
         return codigo
+
+
+class EmergenciaForm(forms.Form):
+    motivo = forms.CharField(
+        label='Motivo del acceso', min_length=15, max_length=500, widget=forms.Textarea(attrs={'rows': 3}),
+        error_messages={'min_length': 'Describe la urgencia con al menos 15 caracteres.'},
+    )

@@ -1,12 +1,11 @@
 from django.shortcuts import get_object_or_404, render
 
 from apps.laboratorio.models import ResultadoExamen
-from apps.usuarios.models import Usuario
-from apps.usuarios.permisos import rol_requerido
+from apps.usuarios.permisos import permiso_requerido
 
 from .models import Paciente
 
-solo_pacientes = rol_requerido(Usuario.Rol.PACIENTE)
+solo_pacientes = permiso_requerido('portal_paciente')
 
 
 def paciente_de(request):

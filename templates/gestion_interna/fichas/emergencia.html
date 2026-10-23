@@ -1,0 +1,22 @@
+{% extends "gestion_interna/base_medico.html" %}
+{% block titulo %}Acceso de emergencia{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Acceso de emergencia</h1>
+    <p class="muted" style="font-size: 15px;">Paciente sin relación contigo · <span class="mono">{{ paciente.rut_oculto }}</span></p>
+  </div>
+</div>
+<form method="post" class="pila tarjeta tarjeta-lg" style="max-width: 640px;" novalidate>
+  {% csrf_token %}
+  <p class="alerta-error" role="note" style="font-weight: 400;">
+    Este paciente no tiene citas, fichas ni recetas contigo. Solo abre este acceso si es una urgencia clínica:
+    durará {{ horas }} horas, quedará registrado con tu nombre y tu motivo, y será revisado.
+  </p>
+  {% include "base/_campo.html" with campo=form.motivo requerido=True ayuda="Describe la urgencia (mínimo 15 caracteres)." %}
+  <div class="acciones">
+    <a href="{% url 'fichas:buscar' %}" class="btn btn-grande">Cancelar</a>
+    <button type="submit" class="btn btn-primario btn-grande">Abrir acceso de emergencia</button>
+  </div>
+</form>
+{% endblock %}

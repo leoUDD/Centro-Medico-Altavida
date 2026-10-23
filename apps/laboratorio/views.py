@@ -5,18 +5,20 @@ from django.views.decorators.http import require_POST
 
 from apps.fichas_clinicas.bitacora import registrar_acceso
 from apps.fichas_clinicas.models import AccesoFicha
-from apps.pacientes.models import Paciente
-from apps.usuarios.models import Usuario
-from apps.usuarios.permisos import rol_requerido
+from apps.fichas_clinicas.autorizacion import autorizar_paciente
+from apps.usuarios.permisos import permiso_requerido
 
 from .models import ResultadoExamen
 
-solo_medicos = rol_requerido(Usuario.Rol.MEDICO)
+ver_resultados = permiso_requerido('ver_datos_clinicos', 'ver_identidad')
+editar_resultados = permiso_requerido('ver_datos_clinicos', 'editar_datos_clinicos')
 
 
-@solo_medicos
+@ver_resultados
 def examenes(request, pk):
-    paciente = get_object_or_404(Paciente, pk=pk)
+    paciente, redireccion = autorizar_paciente(request, pk)
+    if redireccion:
+        return redireccion
     registrar_acceso(paciente, request.user, AccesoFicha.Accion.CONSULTA)
     todos = list(paciente.resultados.all())
     filtro = request.GET.get('estado', '')
@@ -37,10 +39,13 @@ def examenes(request, pk):
     })
 
 
-@solo_medicos
+@editar_resultados
 @require_POST
 def guardar_observacion(request, pk):
     resultado = get_object_or_404(ResultadoExamen, pk=pk)
+    _, redireccion = autorizar_paciente(request, resultado.paciente_id)
+    if redireccion:
+        return redireccion
     resultado.observacion_medico = request.POST.get('observacion', '').strip()[:2000]
     resultado.save(update_fields=['observacion_medico'])
     registrar_acceso(resultado.paciente, request.user, AccesoFicha.Accion.OBSERVACION)

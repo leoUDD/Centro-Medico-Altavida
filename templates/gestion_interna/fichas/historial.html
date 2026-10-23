@@ -14,7 +14,7 @@
 <form method="get" role="search" class="tarjeta tarjeta-pad filtros">
   <div class="campo ancho">
     <label for="q">Buscar en el historial</label>
-    <input id="q" name="q" type="search" value="{{ q }}" placeholder="Diagnóstico, código CIE-10 o medicamento" autocomplete="off">
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="Diagnóstico, código CIE-10 o tratamiento" autocomplete="off">
   </div>
   <div class="campo">
     <label for="estado">Estado</label>
@@ -45,7 +45,6 @@
         <strong>{{ d.diagnostico }}</strong>
       </div>
       {% if d.tratamiento %}<p class="texto-libre" style="font-size: 15px;"><span class="muted">Tratamiento:</span> {{ d.tratamiento }}</p>{% endif %}
-      {% if d.medicamentos %}<p class="texto-libre" style="font-size: 15px;"><span class="muted">Medicamentos:</span> {{ d.medicamentos }}</p>{% endif %}
       <span class="muted small">{{ d.medico.get_full_name|default:d.medico.get_username }}{% if d.medico.especialidad %} · {{ d.medico.especialidad }}{% endif %}</span>
     </div>
     <div>

@@ -8,7 +8,7 @@ from apps.pacientes.views import paciente_de, solo_pacientes
 from .models import Notificacion, PreferenciasNotificacion
 
 FILTROS = {'': None, 'sin-leer': None, 'citas': Notificacion.Tipo.CITA, 'resultados': Notificacion.Tipo.RESULTADO}
-CAMPOS_PREFERENCIAS = ['canal_correo', 'canal_sms', 'canal_navegador', 'recordar_48h', 'recordar_24h', 'recordar_2h']
+CAMPOS_PREFERENCIAS = ['canal_correo', 'canal_sms', 'recordar_48h', 'recordar_24h', 'recordar_2h']
 
 
 @solo_pacientes

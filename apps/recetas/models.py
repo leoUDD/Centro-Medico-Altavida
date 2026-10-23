@@ -40,7 +40,7 @@ class Receta(models.Model):
 
     def contenido_firmable(self):
         return json.dumps({
-            'folio': self.folio, 'paciente': self.paciente.rut_indice, 'medico': self.medico_id,
+            'folio': self.folio, 'paciente': self.paciente.codigo, 'medico': self.medico_id,
             'diagnostico': self.diagnostico.codigo_cie10 if self.diagnostico else '',
             'emitida_en': self.emitida_en.isoformat() if self.emitida_en else '',
             'indicaciones': self.indicaciones,
