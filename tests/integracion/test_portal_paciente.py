@@ -137,8 +137,8 @@ class NotificacionesTests(PortalPacienteBase):
         self.client.post(reverse('notificaciones:preferencias'), {'canal_correo': 'on', 'recordar_2h': 'on'})
         p = PreferenciasNotificacion.objects.get(paciente=self.paciente)
         self.assertEqual(
-            (p.canal_correo, p.canal_sms, p.canal_navegador, p.recordar_48h, p.recordar_24h, p.recordar_2h),
-            (True, False, False, False, False, True),
+            (p.canal_correo, p.canal_sms, p.recordar_48h, p.recordar_24h, p.recordar_2h),
+            (True, False, False, False, True),
         )
         self.assertFalse(PreferenciasNotificacion.objects.filter(paciente=self.otro).exists())
 

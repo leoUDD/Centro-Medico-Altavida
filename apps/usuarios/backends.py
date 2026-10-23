@@ -1,12 +1,17 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
+from django.db.models import Q
 
-from apps.seguridad.indice import indice_rut
+from apps.seguridad.indice import indice_correo, indice_rut
 from apps.seguridad.rut import rut_valido
 
 
 class CorreoORutBackend(ModelBackend):
-    """Inicia sesión con correo electrónico o con RUT (búsqueda por índice ciego)."""
+    """Inicia sesión con correo o RUT.
+
+    Los pacientes no guardan correo ni RUT en claro en su cuenta: se buscan por índice ciego (HMAC). El personal
+    (médicos, administrativos, administradores) entra con su correo laboral o su nombre de usuario.
+    """
 
     def authenticate(self, request, username=None, password=None, **kwargs):
         Usuario = get_user_model()
@@ -14,15 +19,13 @@ class CorreoORutBackend(ModelBackend):
             return None
         username = username.strip()
         if '@' in username:
-            filtro = {'email__iexact': username}
+            filtro = Q(email__iexact=username) | Q(correo_indice=indice_correo(username))
         elif rut_valido(username):
-            filtro = {'rut_indice': indice_rut(username)}
+            filtro = Q(rut_indice=indice_rut(username))
         else:
-            # Cuentas internas (p. ej. creadas por la administración) pueden entrar con su nombre de usuario.
-            filtro = {'username': username}
-        try:
-            usuario = Usuario.objects.get(**filtro)
-        except Usuario.DoesNotExist:
+            filtro = Q(username=username)
+        usuario = Usuario.objects.filter(filtro).first()
+        if usuario is None:
             Usuario().set_password(password)  # iguala el tiempo de respuesta
             return None
         if usuario.check_password(password) and self.user_can_authenticate(usuario):

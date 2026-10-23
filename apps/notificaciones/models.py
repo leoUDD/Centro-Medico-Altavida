@@ -40,7 +40,6 @@ class PreferenciasNotificacion(models.Model):
     paciente = models.OneToOneField('pacientes.Paciente', on_delete=models.CASCADE, related_name='preferencias_notificacion')
     canal_correo = models.BooleanField('correo electrónico', default=True)
     canal_sms = models.BooleanField('SMS', default=True)
-    canal_navegador = models.BooleanField('notificaciones en el navegador', default=False)
     recordar_48h = models.BooleanField('48 horas antes', default=True)
     recordar_24h = models.BooleanField('24 horas antes', default=True)
     recordar_2h = models.BooleanField('2 horas antes', default=False)

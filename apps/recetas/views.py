@@ -6,14 +6,14 @@ from django.utils import timezone
 from apps.fichas_clinicas.bitacora import registrar_acceso
 from apps.fichas_clinicas.models import AccesoFicha
 from apps.pacientes.models import Paciente
-from apps.usuarios.models import Usuario
-from apps.usuarios.permisos import rol_requerido
+from apps.fichas_clinicas.autorizacion import autorizar_paciente
+from apps.usuarios.permisos import permiso_requerido
 
 from .alergias import en_conflicto, palabras_en_alerta
 from .forms import ItemsFormSet, RecetaForm
 from .models import ItemReceta, Receta
 
-solo_medicos = rol_requerido(Usuario.Rol.MEDICO)
+gestionar_recetas = permiso_requerido('emitir_recetas', 'ver_datos_clinicos', 'ver_identidad')
 PREFIJO = 'items'
 
 
@@ -93,23 +93,31 @@ def _formulario(request, paciente, receta=None):
     })
 
 
-@solo_medicos
+@gestionar_recetas
 def nueva(request, paciente_pk):
-    paciente = get_object_or_404(Paciente, pk=paciente_pk)
+    paciente, redireccion = autorizar_paciente(request, paciente_pk)
+    if redireccion:
+        return redireccion
     return _formulario(request, paciente)
 
 
-@solo_medicos
+@gestionar_recetas
 def editar(request, pk):
     receta = get_object_or_404(Receta.objects.select_related('paciente', 'diagnostico'), pk=pk)
+    _, redireccion = autorizar_paciente(request, receta.paciente_id)
+    if redireccion:
+        return redireccion
     if receta.emitida or receta.medico_id != request.user.pk:
         return redirect('recetas:detalle', pk=receta.pk)
     return _formulario(request, receta.paciente, receta)
 
 
-@solo_medicos
+@gestionar_recetas
 def detalle(request, pk):
     receta = get_object_or_404(Receta.objects.select_related('paciente', 'medico', 'diagnostico'), pk=pk)
+    _, redireccion = autorizar_paciente(request, receta.paciente_id)
+    if redireccion:
+        return redireccion
     registrar_acceso(receta.paciente, request.user, AccesoFicha.Accion.CONSULTA)
     return render(request, 'gestion_interna/recetas/detalle.html', {
         **_contexto_paciente(receta.paciente), 'receta': receta, 'items': receta.items.all(),

@@ -4,7 +4,7 @@
   <nav class="menu" aria-label="Menú del paciente">
     <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
     <div class="menu-usuario">
-      <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+      <strong>{{ user.nombre_visible }}</strong>
       <span class="muted small">Paciente</span>
     </div>
     <div class="menu-lista">

@@ -38,6 +38,7 @@ class ExamenesVistasTests(TestCase):
         cls.medico = Usuario.objects.create_user('med', email='med@c.cl', password=CLAVE, rol=Usuario.Rol.MEDICO)
         cls.paciente = Paciente.objects.create(
             rut='15482331K', nombres='María José', apellidos='Fuentes Soto', fecha_nacimiento='1985-03-12',
+            creado_por=cls.medico,
         )
         cls.perfil = ResultadoExamen.objects.create(
             paciente=cls.paciente, tipo_examen='Perfil lipídico', laboratorio='Sede Central',

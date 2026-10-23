@@ -1,7 +1,5 @@
 from django.db import models
 
-from apps.seguridad.campos import CampoCifrado
-
 
 class Prevision(models.Model):
     class Tipo(models.TextChoices):
@@ -24,7 +22,6 @@ class Prevision(models.Model):
 class Cobertura(models.Model):
     paciente = models.ForeignKey('pacientes.Paciente', on_delete=models.CASCADE, related_name='coberturas')
     prevision = models.ForeignKey(Prevision, on_delete=models.PROTECT, related_name='coberturas')
-    datos_cobertura = CampoCifrado()
     fecha_validacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:

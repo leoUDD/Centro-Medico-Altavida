@@ -8,7 +8,7 @@ from apps.convenios.models import Prevision
 from apps.fichas_clinicas.models import AccesoFicha, Diagnostico
 from apps.pacientes.models import Paciente
 from apps.profesionales.models import Especialidad, Profesional
-from apps.seguridad.indice import indice_rut
+from apps.seguridad.indice import indice_correo, indice_rut
 from apps.usuarios.models import Usuario
 
 CLAVE = 'Clave-Muy-Segura-123'
@@ -24,9 +24,15 @@ class RegistroYLoginTests(TestCase):
     def test_registro_crea_usuario_paciente_con_indice_de_rut(self):
         r = self.client.post(reverse('registro'), DATOS_REGISTRO)
         self.assertRedirects(r, reverse('inicio'), fetch_redirect_response=False)
-        usuario = Usuario.objects.get(email='ana@correo.cl')
+        usuario = Usuario.objects.get(correo_indice=indice_correo('ana@correo.cl'))
         self.assertEqual(usuario.rol, Usuario.Rol.PACIENTE)
         self.assertEqual(usuario.rut_indice, indice_rut('12.345.678-5'))
+        # La cuenta no guarda datos personales: usuario aleatorio, sin nombre ni correo en claro.
+        self.assertTrue(usuario.username.startswith('p_'))
+        self.assertEqual((usuario.first_name, usuario.last_name), ('', ''))
+        self.assertIsNone(usuario.email)
+        self.assertEqual(usuario.correo_indice, indice_correo('ana@correo.cl'))
+        self.assertEqual(usuario.paciente.email, 'ana@correo.cl')
         self.assertEqual(usuario.paciente.rut, '123456785')
         self.assertTrue(usuario.paciente.consentimiento_datos)
 
@@ -77,6 +83,7 @@ class FichasTests(TestCase):
         cls.paciente_user = Usuario.objects.create_user('pac', email='pac@c.cl', password=CLAVE)
         cls.paciente = Paciente.objects.create(
             rut='15482331K', nombres='María José', apellidos='Fuentes Soto', fecha_nacimiento='1985-03-12',
+            creado_por=cls.medico,
         )
 
     def test_solo_medicos_acceden(self):
@@ -109,7 +116,8 @@ class FichasTests(TestCase):
             'peso': '70.5',
         }
         r = self.client.post(reverse('fichas:nueva'), datos)
-        paciente = Paciente.objects.get(rut_indice=indice_rut('12.345.678-5'))
+        paciente = Paciente.objects.get(identidad__rut_indice=indice_rut('12.345.678-5'))
+        self.assertEqual(paciente.creado_por, self.medico)
         self.assertRedirects(r, reverse('fichas:detalle', args=[paciente.pk]), fetch_redirect_response=False)
         self.assertEqual(paciente.historial.alergias, 'Penicilina')
         self.assertEqual(paciente.coberturas.get().prevision, prevision)
@@ -138,10 +146,11 @@ class DiagnosticosTests(TestCase):
         )
         cls.paciente = Paciente.objects.create(
             rut='15482331K', nombres='María José', apellidos='Fuentes Soto', fecha_nacimiento='1985-03-12',
+            creado_por=cls.medico,
         )
         cls.dx_diabetes = Diagnostico.objects.create(
             paciente=cls.paciente, medico=cls.medico, codigo_cie10='E11.9', diagnostico='Diabetes mellitus tipo 2',
-            tratamiento='Metformina 850 mg', medicamentos='Metformina',
+            tratamiento='Metformina 850 mg',
         )
         cls.dx_lumbago = Diagnostico.objects.create(
             paciente=cls.paciente, medico=cls.medico, codigo_cie10='M54.5', diagnostico='Lumbago',

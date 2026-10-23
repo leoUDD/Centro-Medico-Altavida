@@ -114,9 +114,7 @@ class EnvioTests(RecepcionBase):
         self.assertEqual(avisos.count(), 1)
 
     def test_fallos_por_contacto_invalido(self):
-        Paciente.objects.filter(pk=self.paciente.pk).update()
-        self.paciente.email, self.paciente.telefono = '', '123'
-        self.paciente.save()
+        self.paciente.actualizar_identidad(email='', telefono='123')
         self.cita(20)
         recordatorios.generar()
         self.assertEqual(recordatorios.enviar_pendientes(), (0, 2))
@@ -216,8 +214,7 @@ class DashboardTests(RecepcionBase):
         self.assertEqual(ReglaRecordatorio.objects.get(horas_antes=24).plantilla, antes)
 
     def test_envios_con_problemas_editar_contacto_y_reintentar(self):
-        self.paciente.telefono = '123'
-        self.paciente.save()
+        self.paciente.actualizar_identidad(telefono='123')
         cita = self.cita(20)
         recordatorios.ejecutar()
         fallido = Recordatorio.objects.get(estado='FALLIDO')
@@ -226,7 +223,7 @@ class DashboardTests(RecepcionBase):
         self.assertContains(r, 'SMS: Número inválido')
         r = self.client.post(reverse('recepcion:contacto', args=[self.paciente.pk]), {'email': 'nuevo@correo.cl', 'telefono': '+56 9 8765 4321'})
         self.assertRedirects(r, reverse('recepcion:dashboard') + '#recordatorios', fetch_redirect_response=False)
-        self.paciente.refresh_from_db()
+        self.paciente = Paciente.objects.get(pk=self.paciente.pk)
         self.assertEqual((self.paciente.email, self.paciente.telefono), ('nuevo@correo.cl', '+56987654321'))
         self.client.post(reverse('recepcion:reintentar', args=[fallido.pk]))
         fallido.refresh_from_db()

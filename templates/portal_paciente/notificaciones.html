@@ -51,7 +51,6 @@
         <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Canales</legend>
         <label class="casilla"><input type="checkbox" name="canal_correo" {% if preferencias.canal_correo %}checked{% endif %}><span>Correo electrónico</span></label>
         <label class="casilla"><input type="checkbox" name="canal_sms" {% if preferencias.canal_sms %}checked{% endif %}><span>SMS al <span class="mono">{{ paciente.telefono_oculto|default:"tu celular" }}</span></span></label>
-        <label class="casilla"><input type="checkbox" name="canal_navegador" {% if preferencias.canal_navegador %}checked{% endif %}><span>Notificaciones en el navegador</span></label>
       </fieldset>
       <fieldset>
         <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Recordarme</legend>

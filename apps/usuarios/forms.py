@@ -1,9 +1,11 @@
+import secrets
+
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
 from django.utils import timezone
 
 from apps.pacientes.models import Paciente
-from apps.seguridad.indice import indice_rut
+from apps.seguridad.indice import indice_correo, indice_rut
 from apps.seguridad.rut import normalizar_rut, rut_valido
 
 
@@ -32,13 +34,13 @@ class RegistroPacienteForm(forms.Form):
         if not rut_valido(rut):
             raise forms.ValidationError('El RUT no es válido. Revisa el dígito verificador.')
         indice = indice_rut(rut)
-        if Paciente.objects.filter(rut_indice=indice).exists() or get_user_model().objects.filter(rut_indice=indice).exists():
+        if Paciente.objects.filter(identidad__rut_indice=indice).exists() or get_user_model().objects.filter(rut_indice=indice).exists():
             raise forms.ValidationError('Ya existe una cuenta con este RUT.')
         return normalizar_rut(rut)
 
     def clean_email(self):
         email = self.cleaned_data['email']
-        if get_user_model().objects.filter(email__iexact=email).exists():
+        if get_user_model().objects.filter(correo_indice=indice_correo(email)).exists():
             raise forms.ValidationError('Ya existe una cuenta con este correo.')
         return email
 
@@ -57,10 +59,11 @@ class RegistroPacienteForm(forms.Form):
     def guardar(self):
         datos = self.cleaned_data
         Usuario = get_user_model()
+        # La cuenta no lleva datos personales: usuario aleatorio, sin nombre ni correo en claro.
+        # Lo identificable vive cifrado en IdentidadPaciente; aquí solo hay índices ciegos para poder iniciar sesión.
         usuario = Usuario.objects.create_user(
-            username=datos['email'], email=datos['email'], password=datos['clave'],
-            first_name=datos['nombres'], last_name=datos['apellidos'],
-            rol=Usuario.Rol.PACIENTE, rut_indice=indice_rut(datos['rut']),
+            username='p_' + secrets.token_hex(8), password=datos['clave'], rol=Usuario.Rol.PACIENTE,
+            rut_indice=indice_rut(datos['rut']), correo_indice=indice_correo(datos['email']),
         )
         Paciente.objects.create(
             usuario=usuario, rut=datos['rut'], nombres=datos['nombres'], apellidos=datos['apellidos'],

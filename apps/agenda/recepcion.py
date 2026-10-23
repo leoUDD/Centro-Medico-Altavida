@@ -17,13 +17,14 @@ from apps.pacientes.models import Paciente
 from apps.profesionales.models import Profesional
 from apps.seguridad.indice import indice_rut
 from apps.seguridad.rut import rut_valido
-from apps.usuarios.models import Usuario
-from apps.usuarios.permisos import rol_requerido
+from apps.pacientes.acceso import registrar_reidentificacion
+from apps.usuarios.permisos import permiso_requerido
 
 from . import calendario, servicios
 from .models import Cita
 
-solo_administrativos = rol_requerido(Usuario.Rol.ADMINISTRATIVO)
+solo_administrativos = permiso_requerido('gestionar_agenda', 'ver_identidad')
+editar_contacto_paciente = permiso_requerido('editar_contacto_paciente', 'ver_identidad')
 POR_PAGINA = 25
 ESTADOS_FILTRO = {'confirmada': Cita.Estado.CONFIRMADA, 'por-confirmar': Cita.Estado.AGENDADA, 'cancelada': Cita.Estado.CANCELADA}
 
@@ -58,7 +59,7 @@ def _estado_recordatorio(cita):
 def _filtrar_por_paciente(citas, consulta):
     if rut_valido(consulta):
         indice = indice_rut(consulta)
-        return [c for c in citas if c.paciente.rut_indice == indice]
+        return [c for c in citas if c.paciente.identidad.rut_indice == indice]
     palabras = _sin_tildes(consulta).split()
     return [c for c in citas if all(p in _sin_tildes(c.paciente.nombre_completo) for p in palabras)]
 
@@ -72,7 +73,7 @@ def dashboard(request):
 
     del_dia = list(
         Cita.objects.filter(inicio__date=fecha)
-        .select_related('paciente', 'profesional__usuario', 'sucursal', 'tipo_examen')
+        .select_related('paciente__identidad', 'profesional__usuario', 'sucursal', 'tipo_examen')
         .prefetch_related('recordatorios__regla').order_by('inicio')
     )
     vigentes = [c for c in del_dia if c.vigente]
@@ -96,6 +97,7 @@ def dashboard(request):
     pagina = Paginator(citas, POR_PAGINA).get_page(request.GET.get('pagina'))
     for cita in pagina:
         cita.recordatorio_estado = _estado_recordatorio(cita)
+    registrar_reidentificacion(request.user, 'Agenda del día', len(pagina))
 
     parametros = request.GET.copy()
     parametros.pop('pagina', None)
@@ -114,7 +116,7 @@ def dashboard(request):
         'regla_24h': ReglaRecordatorio.objects.filter(horas_antes=24).first(),
         'ultima_ejecucion': EjecucionRecordatorios.objects.first(),
         'pendientes': Recordatorio.objects.filter(estado=Recordatorio.Estado.PENDIENTE).count(),
-        'con_problemas': fallidos.select_related('cita__paciente', 'cita__profesional__usuario', 'cita__sucursal')[:10],
+        'con_problemas': fallidos.select_related('cita__paciente__identidad', 'cita__profesional__usuario', 'cita__sucursal')[:10],
         'ahora': timezone.now(),
     })
 
@@ -201,13 +203,13 @@ class ContactoForm(forms.Form):
         return telefono
 
 
-@solo_administrativos
+@editar_contacto_paciente
 def editar_contacto(request, pk):
     paciente = get_object_or_404(Paciente, pk=pk)
     form = ContactoForm(request.POST or None, initial={'email': paciente.email, 'telefono': paciente.telefono})
     if request.method == 'POST' and form.is_valid():
-        paciente.email, paciente.telefono = form.cleaned_data['email'], form.cleaned_data['telefono']
-        paciente.save(update_fields=['email', 'telefono'])
+        paciente.actualizar_identidad(email=form.cleaned_data['email'], telefono=form.cleaned_data['telefono'])
+        registrar_reidentificacion(request.user, 'Corrección de contacto', 1)
         messages.success(request, 'Contacto actualizado. Ya puedes reintentar el recordatorio.')
         return redirect(reverse('recepcion:dashboard') + '#recordatorios')
     return render(request, 'gestion_interna/recepcion/contacto.html', {'form': form, 'paciente': paciente, 'seccion': 'recordatorios'})

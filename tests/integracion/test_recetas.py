@@ -2,6 +2,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from apps.fichas_clinicas.models import AccesoFicha, Diagnostico, HistorialMedico
+from apps.pacientes.acceso import abrir_emergencia
 from apps.pacientes.models import Paciente
 from apps.recetas.alergias import en_conflicto, palabras_en_alerta
 from apps.recetas.models import Receta
@@ -43,7 +44,10 @@ class RecetasTests(TestCase):
         cls.otro = Usuario.objects.create_user('otro', email='otro@c.cl', password=CLAVE, rol=Usuario.Rol.MEDICO)
         cls.paciente = Paciente.objects.create(
             rut='15482331K', nombres='María José', apellidos='Fuentes Soto', fecha_nacimiento='1985-03-12',
+            creado_por=cls.medico,
         )
+        # `otro` accede por emergencia: puede ver al paciente pero no editar borradores ajenos.
+        abrir_emergencia(cls.otro, cls.paciente, 'Urgencia de prueba en guardia')
         HistorialMedico.objects.create(paciente=cls.paciente, alergias='Penicilina')
         cls.dx = Diagnostico.objects.create(
             paciente=cls.paciente, medico=cls.medico, codigo_cie10='E78.5', diagnostico='Hiperlipidemia',
