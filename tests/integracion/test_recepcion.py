@@ -130,12 +130,13 @@ class EnvioTests(RecepcionBase):
             recordatorios.enviar_pendientes()
         self.assertEqual(Recordatorio.objects.get(canal='CORREO').error, 'Correo rebotado')
 
-    def test_sms_se_registra_en_el_log(self):
+    def test_sms_se_registra_en_el_log_sin_contenido_ni_telefono_completo(self):
         self.cita(20)
         recordatorios.generar()
         with self.assertLogs('apps.notificaciones.sms', level='INFO') as log:
             recordatorios.enviar_pendientes()
-        self.assertIn('Hola María', log.output[0])
+        self.assertIn('4821', log.output[0])
+        self.assertNotIn('María', log.output[0])
         self.assertNotIn('1234 4821', log.output[0])
 
     def test_ejecutar_registra_la_pasada(self):

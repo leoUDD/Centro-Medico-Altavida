@@ -4,6 +4,7 @@ import unicodedata
 from datetime import date
 
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
@@ -15,7 +16,7 @@ from apps.notificaciones import recordatorios
 from apps.notificaciones.models import EjecucionRecordatorios, Notificacion, Recordatorio, ReglaRecordatorio
 from apps.pacientes.models import Paciente
 from apps.profesionales.models import Profesional
-from apps.seguridad.indice import indice_rut
+from apps.seguridad.indice import indice_correo, indice_rut
 from apps.seguridad.rut import rut_valido
 from apps.pacientes.acceso import registrar_reidentificacion
 from apps.usuarios.permisos import permiso_requerido
@@ -207,6 +208,10 @@ class ContactoForm(forms.Form):
 def editar_contacto(request, pk):
     paciente = get_object_or_404(Paciente, pk=pk)
     form = ContactoForm(request.POST or None, initial={'email': paciente.email, 'telefono': paciente.telefono})
+    if request.method == 'POST' and form.is_valid():
+        correo = form.cleaned_data['email']
+        if correo and get_user_model().objects.filter(correo_indice=indice_correo(correo)).exclude(pk=paciente.usuario_id).exists():
+            form.add_error('email', 'Este correo ya está asociado a otra cuenta.')
     if request.method == 'POST' and form.is_valid():
         paciente.actualizar_identidad(email=form.cleaned_data['email'], telefono=form.cleaned_data['telefono'])
         registrar_reidentificacion(request.user, 'Corrección de contacto', 1)

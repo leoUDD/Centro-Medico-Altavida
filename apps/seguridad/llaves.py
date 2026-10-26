@@ -13,10 +13,12 @@ import hashlib
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.views.decorators.debug import sensitive_variables
 
 PROPOSITOS = ('clinica', 'identidad')
 
 
+@sensitive_variables()
 def decodificar(valor, nombre):
     try:
         llave = base64.urlsafe_b64decode(valor)
@@ -38,11 +40,13 @@ def _configuradas(proposito):
     return settings.LLAVES_CIFRADO[proposito]
 
 
+@sensitive_variables()
 def llave_actual(proposito):
     llave = decodificar(_configuradas(proposito)['actual'], f'Llave {proposito}')
     return identificador(llave), llave
 
 
+@sensitive_variables()
 def llave_por_identificador(proposito, kid):
     """Busca entre la llave actual y la anterior (rotación en curso); None si ninguna corresponde."""
     for clave in ('actual', 'anterior'):
@@ -54,5 +58,6 @@ def llave_por_identificador(proposito, kid):
     return None
 
 
+@sensitive_variables()
 def llave_de_indices():
     return decodificar(settings.CLAVE_INDICES, 'CLAVE_INDICES')

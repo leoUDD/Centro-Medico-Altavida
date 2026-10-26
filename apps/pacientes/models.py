@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import models, transaction
 
 from apps.seguridad.campos import CampoCifrado
-from apps.seguridad.indice import indice_rut
+from apps.seguridad.indice import indice_correo, indice_rut
 from apps.seguridad.rut import formatear_rut
 
 CAMPOS_IDENTIDAD = (
@@ -105,6 +105,10 @@ class Paciente(models.Model):
                 raise AttributeError(campo)
             setattr(identidad, campo, valor)
         identidad.save()
+        if 'email' in campos and self.usuario_id:
+            # El correo de inicio de sesión es un índice ciego en la cuenta: debe seguir al correo cifrado.
+            self.usuario.correo_indice = indice_correo(campos['email']) if campos['email'] else None
+            self.usuario.save(update_fields=['correo_indice'])
 
 
 def _propiedad_identidad(campo):

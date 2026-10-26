@@ -33,3 +33,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler403 = 'apps.seguridad.errores.error_403'
+handler404 = 'apps.seguridad.errores.error_404'
+handler500 = 'apps.seguridad.errores.error_500'

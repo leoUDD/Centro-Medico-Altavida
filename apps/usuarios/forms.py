@@ -3,6 +3,7 @@ import secrets
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
 from django.utils import timezone
+from django.views.decorators.debug import sensitive_variables
 
 from apps.pacientes.models import Paciente
 from apps.seguridad.indice import indice_correo, indice_rut
@@ -56,6 +57,7 @@ class RegistroPacienteForm(forms.Form):
                 self.add_error('clave', error)
         return datos
 
+    @sensitive_variables()
     def guardar(self):
         datos = self.cleaned_data
         Usuario = get_user_model()
