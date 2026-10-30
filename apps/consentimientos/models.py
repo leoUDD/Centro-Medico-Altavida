@@ -163,6 +163,7 @@ class RegistroConsentimiento(models.Model):
     class Canal(models.TextChoices):
         PORTAL = 'PORTAL', 'Portal del paciente'
         MIGRACION = 'MIGRACION', 'Migración de datos anteriores'
+        DERECHOS = 'DERECHOS', 'Supresión por ejercicio de derechos'
 
     paciente = models.ForeignKey('pacientes.Paciente', on_delete=models.CASCADE, related_name='registros_consentimiento')
     finalidad = models.ForeignKey(Finalidad, on_delete=models.PROTECT, related_name='+')

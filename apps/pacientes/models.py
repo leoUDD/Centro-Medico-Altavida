@@ -59,6 +59,8 @@ class Paciente(models.Model):
     # funda en la ley (Hito 1); los consentimientos, uno por finalidad, viven en apps/consentimientos.
     aviso_privacidad_version = models.PositiveSmallIntegerField(null=True, blank=True)
     aviso_privacidad_en = models.DateTimeField(null=True, blank=True)
+    # Supresión parcial: los datos que la ley obliga a conservar quedan bloqueados (sin uso distinto de la conservación).
+    datos_bloqueados_desde = models.DateTimeField(null=True, blank=True)
 
     creado = models.DateTimeField(auto_now_add=True)
 

@@ -1,0 +1,22 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Mis derechos{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Mis derechos sobre mis datos</h1>
+    <p class="muted" style="font-size: 15px;">Puedes pedir una copia de tus datos, corregirlos o solicitar su eliminación. Respondemos dentro del plazo legal y verificamos tu identidad antes de entregar o cambiar nada.</p>
+  </div>
+  {% if not bloqueado %}<a class="btn btn-primario" href="{% url 'derechos:nueva' %}">Nueva solicitud</a>{% endif %}
+</div>
+{% if bloqueado %}<p class="alerta-error" role="status">Tus datos fueron suprimidos o bloqueados el {{ bloqueado|date:"d-m-Y" }}.</p>{% endif %}
+<table class="tabla">
+  <thead><tr><th>Código</th><th>Qué pediste</th><th>Estado</th><th>Responder antes del</th><th></th></tr></thead>
+  <tbody>
+  {% for s in solicitudes %}
+    <tr><td class="mono">{{ s.codigo }}</td><td>{{ s.get_tipo_display }}</td><td>{{ s.get_estado_display }}</td><td>{{ s.plazo_hasta|date:"d-m-Y" }}</td><td><a href="{% url 'derechos:detalle' s.codigo %}">Ver</a></td></tr>
+  {% empty %}
+    <tr><td colspan="5" class="muted">Aún no has hecho solicitudes.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

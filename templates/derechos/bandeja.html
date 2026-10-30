@@ -1,0 +1,20 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Solicitudes de derechos{% endblock %}
+{% block contenido %}
+<div class="cabecera"><div><h1>Solicitudes de derechos</h1>
+<p class="muted" style="font-size: 15px;">Solo ves códigos seudónimos. Ordenadas por plazo.</p></div></div>
+<table class="tabla">
+  <thead><tr><th>Solicitud</th><th>Paciente</th><th>Tipo</th><th>Estado</th><th>Plazo</th><th></th></tr></thead>
+  <tbody>
+  {% for s in abiertas %}
+    <tr><td class="mono">{{ s.codigo }}</td><td class="mono">{{ s.paciente.codigo }}</td><td>{{ s.get_tipo_display }}</td><td>{{ s.get_estado_display }}</td>
+      <td>{{ s.plazo_hasta|date:"d-m-Y" }}{% if s.vencida %} <strong>(vencida)</strong>{% endif %}</td><td><a href="{% url 'derechos:gestionar' s.codigo %}">Gestionar</a></td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">No hay solicitudes abiertas.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<h2 style="margin-top: 24px;">Cerradas recientemente</h2>
+<table class="tabla">
+  <thead><tr><th>Solicitud</th><th>Tipo</th><th>Resolución</th><th>Cerrada</th></tr></thead>
+  <tbody>{% for s in cerradas %}<tr><td class="mono">{{ s.codigo }}</td><td>{{ s.get_tipo_display }}</td><td>{{ s.get_resolucion_display }}</td><td>{{ s.cerrada_en|date:"d-m-Y" }}</td></tr>{% empty %}<tr><td colspan="4" class="muted">Ninguna.</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

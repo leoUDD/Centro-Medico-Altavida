@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'apps.laboratorio',
     'apps.notificaciones',
     'apps.consentimientos',
+    'apps.derechos',
     'apps.integraciones',
     'apps.auditoria',
 ]
@@ -256,3 +257,9 @@ LOGGING = {
 
 # Auditoría: meses que se conservan los eventos antes de poder eliminarse (el trigger de la base impide menos de 24).
 AUDITORIA_RETENCION_MESES = 24
+# Ejercicio de derechos: plazo de respuesta en días corridos (configurable; verificar contra la ley vigente) y
+# conservación de la ficha clínica (DS 41/2012 MINSAL).
+DERECHOS_PLAZO_DIAS = 30
+FICHA_CONSERVACION_ANIOS = 15
+DERECHOS_DESCARGA_DIAS = 7
+DERECHOS_DESCARGAS_MAX = 3

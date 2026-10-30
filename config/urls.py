@@ -30,6 +30,7 @@ urlpatterns = [
     path('administracion/', include('apps.agenda.urls_recepcion')),
     path('privacidad/auditoria/', include('apps.auditoria.urls')),
     path('', include('apps.consentimientos.urls')),
+    path('', include('apps.derechos.urls')),
     path('', include('apps.usuarios.urls')),
 ]
 

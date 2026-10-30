@@ -11,6 +11,7 @@
       {% if perms.usuarios.ver_auditoria %}<a class="menu-item" href="{% url 'auditoria:eventos' %}" {% if seccion == 'auditoria' %}aria-current="page"{% endif %}>Auditoría</a>{% endif %}
       {% if perms.usuarios.gestionar_alertas %}<a class="menu-item" href="{% url 'auditoria:alertas' %}" {% if seccion == 'alertas' %}aria-current="page"{% endif %}>Alertas</a>{% endif %}
       {% if perms.usuarios.ejecutar_contencion %}<a class="menu-item" href="{% url 'auditoria:modo' %}" {% if seccion == 'contencion' %}aria-current="page"{% endif %}>Contención</a>{% endif %}
+      {% if perms.usuarios.gestionar_derechos %}<a class="menu-item" href="{% url 'derechos:bandeja' %}" {% if seccion == 'derechos' %}aria-current="page"{% endif %}>Derechos de titulares</a>{% endif %}
       {% if perms.usuarios.ver_consentimientos %}<a class="menu-item" href="{% url 'consentimientos:panel' %}" {% if seccion == 'consentimientos' %}aria-current="page"{% endif %}>Consentimientos</a>{% endif %}
     </div>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>

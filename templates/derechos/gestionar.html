@@ -1,0 +1,33 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Solicitud {{ s.codigo }}{% endblock %}
+{% block contenido %}
+<div class="cabecera"><div><h1>Solicitud <span class="mono">{{ s.codigo }}</span></h1>
+<p class="muted" style="font-size: 15px;">{{ s.get_tipo_display }} · paciente <span class="mono">{{ s.paciente.codigo }}</span> · {{ s.get_estado_display }} · plazo {{ s.plazo_hasta|date:"d-m-Y" }}{% if s.vencida %} <strong>(vencida)</strong>{% endif %}</p></div></div>
+
+<section class="tarjeta tarjeta-pad pila">
+  <p><strong>Identidad:</strong> {% if s.verificada_en %}verificada el {{ s.verificada_en|date:"d-m-Y H:i" }} (nivel {{ s.nivel_requerido }}){% else %}pendiente (nivel requerido {{ s.nivel_requerido }}){% endif %}</p>
+  {% if s.tipo == 'RECTIFICACION' %}<p><strong>Dato a corregir:</strong> {{ s.get_campo_display }}. El valor propuesto no se muestra: el sistema lo aplica si acoges la solicitud.</p>{% endif %}
+  {% if s.tipo == 'SUPRESION' %}<p><strong>Datos clínicos que la ley obliga a conservar:</strong> {% if conserva %}sí; la supresión será parcial (bloqueo de la ficha){% else %}no hay{% endif %}.</p>{% endif %}
+</section>
+
+{% if s.estado == Estado.EN_EVALUACION or s.estado == Estado.EN_VERIFICACION %}
+<form method="post" action="{% url 'derechos:resolver' s.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 600px;">
+  {% csrf_token %}
+  <h2>Resolver</h2>
+  <label>Resolución <select name="resolucion">{% for v, n in resoluciones %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
+  <label>Fundamento (obligatorio si rechazas) <select name="fundamento">{% for v, n in fundamentos %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
+  <label>Respuesta para el titular <textarea name="respuesta" rows="4" maxlength="800"></textarea></label>
+  <p class="muted small">No escribas datos personales ni clínicos en la respuesta.</p>
+  <div class="acciones"><button type="submit" class="btn btn-primario btn-grande">Resolver</button></div>
+</form>
+{% endif %}
+{% if s.estado == Estado.RESUELTA %}
+<p>Resuelta: <strong>{{ s.get_resolucion_display }}</strong>{% if s.fundamento %} · {{ s.get_fundamento_display }}{% endif %}. Descargas del titular: {{ s.descargas }}.</p>
+<form method="post" action="{% url 'derechos:cerrar' s.codigo %}">{% csrf_token %}<button type="submit" class="btn btn-primario">Cerrar solicitud</button></form>
+{% endif %}
+
+<h2 style="margin-top: 24px;">Historial</h2>
+<table class="tabla"><thead><tr><th>Fecha</th><th>De</th><th>A</th><th>Detalle</th></tr></thead>
+<tbody>{% for h in historial %}<tr><td>{{ h.fecha|date:"d-m-Y H:i" }}</td><td>{{ h.estado_anterior }}</td><td>{{ h.estado_nuevo }}</td><td>{{ h.detalle }}</td></tr>{% endfor %}</tbody></table>
+<p><a href="{% url 'derechos:bandeja' %}">Volver a la bandeja</a></p>
+{% endblock %}

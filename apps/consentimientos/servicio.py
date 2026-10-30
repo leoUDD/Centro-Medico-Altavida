@@ -82,6 +82,8 @@ def cambiar(paciente, codigo, otorgar, usuario, actor_paciente=None, canal=Regis
         finalidad = Finalidad.objects.get(codigo=codigo, activa=True)
     except Finalidad.DoesNotExist:
         raise ConsentimientoError('Esa finalidad no existe.')
+    if paciente.datos_bloqueados_desde:
+        raise ConsentimientoError('Los datos de esta persona están bloqueados por una solicitud de supresión.')
     otorgante, representacion = _quien_decide(paciente, actor_paciente)
     texto = texto_vigente(finalidad)
     actual = Consentimiento.objects.filter(paciente=paciente, finalidad=finalidad).first()

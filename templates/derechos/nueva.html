@@ -1,0 +1,25 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Nueva solicitud{% endblock %}
+{% block contenido %}
+<div class="cabecera"><div><h1>Nueva solicitud</h1>
+<p class="muted" style="font-size: 15px;">Tu ficha clínica debe conservarse por ley al menos 15 años: si pides eliminar tus datos, eliminaremos lo que no estamos obligados a guardar y bloquearemos el resto.</p></div></div>
+<form method="post" class="pila tarjeta tarjeta-lg" style="max-width: 560px;">
+  {% csrf_token %}
+  {% if representados %}
+  <label>¿Para quién?
+    <select name="paciente"><option value="">Para mí</option>{% for m in representados %}<option value="{{ m.codigo }}">{{ m.nombres }} (mi representado)</option>{% endfor %}</select>
+  </label>
+  {% endif %}
+  <label>¿Qué quieres hacer?
+    <select name="tipo" required>{% for v, n in tipos %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select>
+  </label>
+  <fieldset><legend>Solo si quieres corregir un dato</legend>
+    <label>Dato <select name="campo"><option value="">—</option>{% for v, n in campos %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
+    <label>Valor correcto (o qué está equivocado, si es un dato clínico) <input name="valor" maxlength="200"></label>
+  </fieldset>
+  <div class="acciones">
+    <a href="{% url 'derechos:mis' %}" class="btn btn-grande">Cancelar</a>
+    <button type="submit" class="btn btn-primario btn-grande">Enviar solicitud</button>
+  </div>
+</form>
+{% endblock %}
