@@ -82,6 +82,24 @@ class CadenaTests(TestCase):
             cursor.execute('UPDATE auditoria_eventoauditoria SET resultado = %s WHERE id = %s', ['DENEGADO', medio.id])
         self.assertEqual(servicio.verificar(), (False, medio.id, 1))
 
+    def test_alterar_cualquier_campo_rompe_la_cadena(self):
+        # Cada campo del evento debe estar cubierto por el hash (una vez se coló un comentario que sacó actor_id).
+        columnas = {
+            'actor_id': '99', 'actor_rol': "'MEDICO'", 'actor_ref': "'x'", 'operacion': "'FICHA_CONSULTA'",
+            'recurso_tipo': "'otro'", 'recurso_ref': "'Pzzz'", 'resultado': "'DENEGADO'", 'ip_hash': "'abc'",
+            'detalle': "'{\"cantidad\": 9}'", 'fecha': "'2020-01-01 00:00:00'", 'uid': "'11111111-1111-1111-1111-111111111111'",
+        }
+        for columna, valor in columnas.items():
+            with self.subTest(columna=columna):
+                EventoAuditoria.objects.all()  # el estado entre subpruebas lo restablece TestCase al terminar
+                evento = servicio.registrar(Operacion.SESION_INICIO, 'cuenta', 1, actor_ref='base')
+                quitar_triggers()
+                with connection.cursor() as cursor:
+                    cursor.execute(f'UPDATE auditoria_eventoauditoria SET {columna} = {valor} WHERE id = %s', [evento.id])
+                self.assertFalse(servicio.verificar()[0], columna)
+                with connection.cursor() as cursor:
+                    cursor.execute('DELETE FROM auditoria_eventoauditoria')
+
     def test_borrar_un_evento_del_medio_rompe_la_cadena(self):
         servicio.registrar(Operacion.SESION_INICIO, 'cuenta', 1)
         medio = servicio.registrar(Operacion.FICHA_CONSULTA, 'paciente', 'Pabc')
