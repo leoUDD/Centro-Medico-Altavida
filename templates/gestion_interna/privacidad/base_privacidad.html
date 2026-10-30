@@ -1,14 +1,16 @@
 {% extends "base/base.html" %}
 {% block cuerpo %}
 <div class="panel">
-  <nav class="menu" aria-label="Menú de privacidad">
+  <nav class="menu" aria-label="Menú de privacidad y seguridad">
     <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
     <div class="menu-usuario">
       <strong>{{ user.nombre_visible }}</strong>
-      <span class="muted small">Encargado de privacidad</span>
+      <span class="muted small">{{ user.get_rol_display }}</span>
     </div>
     <div class="menu-lista">
-      <a class="menu-item" href="{% url 'auditoria:eventos' %}" {% if seccion == 'auditoria' %}aria-current="page"{% endif %}>Auditoría</a>
+      {% if perms.usuarios.ver_auditoria %}<a class="menu-item" href="{% url 'auditoria:eventos' %}" {% if seccion == 'auditoria' %}aria-current="page"{% endif %}>Auditoría</a>{% endif %}
+      {% if perms.usuarios.gestionar_alertas %}<a class="menu-item" href="{% url 'auditoria:alertas' %}" {% if seccion == 'alertas' %}aria-current="page"{% endif %}>Alertas</a>{% endif %}
+      {% if perms.usuarios.ejecutar_contencion %}<a class="menu-item" href="{% url 'auditoria:modo' %}" {% if seccion == 'contencion' %}aria-current="page"{% endif %}>Contención</a>{% endif %}
     </div>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>
   </nav>

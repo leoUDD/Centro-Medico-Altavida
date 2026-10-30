@@ -26,6 +26,8 @@ class Usuario(AbstractUser):
     # Índices ciegos (HMAC): permiten iniciar sesión con RUT o correo sin guardarlos en claro.
     rut_indice = models.CharField(max_length=64, unique=True, null=True, blank=True, editable=False)
     correo_indice = models.CharField(max_length=64, unique=True, null=True, blank=True, editable=False)
+    # Contención: la cuenta puede iniciar sesión pero pierde todos los permisos hasta que se restaure (ver apps/auditoria/contencion.py).
+    acceso_restringido = models.BooleanField(default=False)
 
     objects = UsuarioManager()
 
@@ -65,12 +67,16 @@ class Usuario(AbstractUser):
         return self.rol == self.Rol.ADMIN_SISTEMA
 
     def has_perm(self, perm, obj=None):
+        if self.acceso_restringido:
+            return False
         # El administrador del sistema es superusuario de Django, pero no debe leer datos clínicos ni de identidad.
         if self.rol == self.Rol.ADMIN_SISTEMA and roles.reservado_para_clinica(perm):
             return False
         return super().has_perm(perm, obj)
 
     def has_module_perms(self, app_label):
+        if self.acceso_restringido:
+            return False
         if self.rol == self.Rol.ADMIN_SISTEMA and app_label in roles.APPS_CLINICAS:
             return False
         return super().has_module_perms(app_label)

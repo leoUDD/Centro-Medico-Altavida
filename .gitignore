@@ -9,3 +9,5 @@ media/
 staticfiles/
 # Archivos de bloqueo de Word
 ~$*
+# Paquetes de evidencia de incidentes (contienen eventos de auditoría)
+evidencias/

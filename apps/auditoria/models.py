@@ -136,3 +136,76 @@ class PuntoControlAuditoria(models.Model):
 
     def delete(self, *args, **kwargs):
         raise PermissionError('Los puntos de control no se pueden eliminar.')
+
+
+class Severidad(models.TextChoices):
+    BAJA = 'BAJA', 'Baja'
+    MEDIA = 'MEDIA', 'Media'
+    ALTA = 'ALTA', 'Alta'
+    CRITICA = 'CRITICA', 'Crítica'
+
+
+class EstadoAlerta(models.TextChoices):
+    """Ciclo de vida alineado con el plan de respuesta: alerta → evento sospechoso → incidente confirmado."""
+
+    ABIERTA = 'ABIERTA', 'Alerta abierta'
+    EN_REVISION = 'EN_REVISION', 'En revisión'
+    SOSPECHOSO = 'SOSPECHOSO', 'Evento sospechoso'
+    INCIDENTE = 'INCIDENTE', 'Incidente confirmado'
+    DESCARTADA = 'DESCARTADA', 'Descartada (falsa alarma)'
+    CERRADA = 'CERRADA', 'Cerrada'
+
+
+class AlertaSeguridad(models.Model):
+    """Resultado de una regla de detección sobre el registro de auditoría. Sin datos personales: solo ids y códigos."""
+
+    fecha = models.DateTimeField(default=timezone.now, db_index=True)
+    regla = models.CharField(max_length=40, db_index=True)
+    severidad = models.CharField(max_length=10, choices=Severidad.choices)
+    estado = models.CharField(max_length=12, choices=EstadoAlerta.choices, default=EstadoAlerta.ABIERTA, db_index=True)
+    actor_id = models.PositiveIntegerField(null=True, blank=True)
+    recurso_ref = models.CharField(max_length=60, blank=True)
+    resumen = models.CharField(max_length=200)
+    cantidad = models.PositiveIntegerField(default=0)
+    # Evita repetir la misma alerta por el mismo hecho: regla + sujeto + ventana de tiempo.
+    clave = models.CharField(max_length=120, unique=True)
+    atendida_por = models.PositiveIntegerField(null=True, blank=True)
+    atendida_en = models.DateTimeField(null=True, blank=True)
+    cerrada_en = models.DateTimeField(null=True, blank=True)
+    nota = models.CharField(max_length=300, blank=True)
+    evidencia_sha256 = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'alerta de seguridad'
+        verbose_name_plural = 'alertas de seguridad'
+
+    def __str__(self):
+        return f'{self.regla} ({self.get_severidad_display()})'
+
+    @property
+    def abierta(self):
+        return self.estado not in (EstadoAlerta.DESCARTADA, EstadoAlerta.CERRADA)
+
+
+class ModoSistema(models.TextChoices):
+    NORMAL = 'NORMAL', 'Normal'
+    SOLO_LECTURA = 'SOLO_LECTURA', 'Solo lectura (se bloquean los cambios)'
+    BLOQUEADO = 'BLOQUEADO', 'Bloqueado (solo personal de seguridad)'
+
+
+class EstadoSistema(models.Model):
+    """Interruptor de contención global (una sola fila): permite aislar el sistema mientras se investiga."""
+
+    modo = models.CharField(max_length=15, choices=ModoSistema.choices, default=ModoSistema.NORMAL)
+    cambiado_en = models.DateTimeField(default=timezone.now)
+    cambiado_por = models.PositiveIntegerField(null=True, blank=True)
+    motivo_codigo = models.CharField(max_length=40, blank=True)
+
+    class Meta:
+        verbose_name = 'estado del sistema'
+        verbose_name_plural = 'estado del sistema'
+
+    @classmethod
+    def actual(cls):
+        return cls.objects.order_by('pk').first() or cls.objects.create()

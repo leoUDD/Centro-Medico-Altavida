@@ -59,6 +59,15 @@ class CadenaTests(TestCase):
         self.assertNotEqual(a.hash, b.hash)
         self.assertEqual(servicio.verificar(), (True, None, 2))
 
+    def test_el_hash_no_depende_de_la_zona_horaria_con_que_se_cree_el_evento(self):
+        from datetime import datetime, time
+        local = timezone.make_aware(datetime.combine(timezone.localdate(), time(3, 10)))
+        evento = EventoAuditoria(fecha=local, operacion=Operacion.SESION_INICIO)
+        evento.hash_anterior = servicio._ultimo_hash()
+        evento.hash = servicio.calcular_hash(evento)
+        evento.save(force_insert=True)
+        self.assertEqual(servicio.verificar(), (True, None, 1))
+
     def test_el_hash_depende_de_la_llave_de_auditoria(self):
         evento = servicio.registrar(Operacion.SESION_INICIO, 'cuenta', 1)
         with self.settings(CLAVE_AUDITORIA='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='):

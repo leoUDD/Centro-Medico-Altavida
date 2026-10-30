@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 from datetime import timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.db import connection, transaction
@@ -56,7 +57,7 @@ def huella_identificador(identificador):
 
 def _payload(evento):
     return json.dumps({
-        'uid': str(evento.uid), 'fecha': evento.fecha.isoformat(), 'actor_id': evento.actor_id,
+        'uid': str(evento.uid), 'fecha': evento.fecha.astimezone(dt_timezone.utc).isoformat(),  # siempre en UTC, como la devuelve la base 'actor_id': evento.actor_id,
         'actor_rol': evento.actor_rol, 'actor_ref': evento.actor_ref, 'operacion': evento.operacion,
         'recurso_tipo': evento.recurso_tipo, 'recurso_ref': evento.recurso_ref, 'resultado': evento.resultado,
         'ip_hash': evento.ip_hash, 'detalle': evento.detalle,
