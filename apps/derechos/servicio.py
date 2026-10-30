@@ -288,7 +288,7 @@ def cerrar(solicitud, ejecutor):
 def puede_descargar(solicitud):
     return (
         solicitud.estado == Estado.RESUELTA and solicitud.tipo in (Tipo.ACCESO, Tipo.PORTABILIDAD)
-        and solicitud.resolucion == Resolucion.EJECUTADA and solicitud.descarga_hasta is not None
+        and solicitud.resolucion in (Resolucion.EJECUTADA, Resolucion.PARCIAL) and solicitud.descarga_hasta is not None
         and solicitud.descarga_hasta > timezone.now() and solicitud.descargas < settings.DERECHOS_DESCARGAS_MAX
     )
 
