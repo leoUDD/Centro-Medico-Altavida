@@ -31,7 +31,7 @@ if not SECRET_KEY:
     raise ImproperlyConfigured('Falta DJANGO_SECRET_KEY en el entorno (.env).')
 
 # Seguro por defecto: DEBUG apagado. En desarrollo, definir DJANGO_DEBUG=1 en .env.
-DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '0'
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
 # Lista separada por comas. En desarrollo (DEBUG=1) Django acepta localhost aunque esté vacía.
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]

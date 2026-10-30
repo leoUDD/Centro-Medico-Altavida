@@ -7,3 +7,5 @@ media/
 .idea/
 .vscode/
 staticfiles/
+# Archivos de bloqueo de Word
+~$*

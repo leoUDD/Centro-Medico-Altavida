@@ -142,6 +142,9 @@ class RegistrosSinDatosPersonalesTests(TestCase):
 class ConfiguracionSeguraTests(TestCase):
     def _config(self, **entorno):
         env = {k: v for k, v in os.environ.items() if not k.startswith('DJANGO_') or k == 'DJANGO_SECRET_KEY'}
+        # Valores vacíos explícitos: python-dotenv no pisa variables ya definidas, así el resultado no depende
+        # del .env de quien ejecuta las pruebas (p. ej. DJANGO_DEBUG=1 en desarrollo).
+        env.update({'DJANGO_DEBUG': '', 'DJANGO_HTTPS': ''})
         env.update(entorno)
         codigo = (
             "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); "
