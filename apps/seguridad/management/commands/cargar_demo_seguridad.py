@@ -26,6 +26,7 @@ CUENTAS = [
     ('recepcion', 'Recepcion-Altavida-2026!', Usuario.Rol.ADMINISTRATIVO, 'Paula', 'Soto'),
     ('dra.rojas', 'Medico-Rojas-2026!', Usuario.Rol.MEDICO, 'Camila', 'Rojas'),
     ('dr.navarro', 'Medico-Navarro-2026!', Usuario.Rol.MEDICO, 'Felipe', 'Navarro'),
+    ('privacidad', 'Privacidad-Altavida-2026!', Usuario.Rol.PRIVACIDAD, 'Marcela', 'Vera'),
 ]
 CLAVE_PACIENTE = 'Paciente-Maria-2026!'
 
