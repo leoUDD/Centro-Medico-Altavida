@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.recetas',
     'apps.laboratorio',
     'apps.notificaciones',
+    'apps.consentimientos',
     'apps.integraciones',
     'apps.auditoria',
 ]

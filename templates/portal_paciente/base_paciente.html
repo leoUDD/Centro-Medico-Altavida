@@ -11,6 +11,7 @@
       <a class="menu-item" href="{% url 'agenda:consulta' %}" {% if seccion == 'consulta' %}aria-current="page"{% endif %}>Agendar consulta</a>
       <a class="menu-item" href="{% url 'agenda:examen' %}" {% if seccion == 'examen' %}aria-current="page"{% endif %}>Agendar examen</a>
       <a class="menu-item" href="{% url 'pacientes:resultados' %}" {% if seccion == 'resultados' %}aria-current="page"{% endif %}>Mis resultados</a>
+      <a class="menu-item" href="{% url 'consentimientos:mis' %}" {% if seccion == 'consentimientos' %}aria-current="page"{% endif %}>Mis consentimientos</a>
       <a class="menu-item" href="{% url 'notificaciones:lista' %}" {% if seccion == 'notificaciones' %}aria-current="page"{% endif %}>
         Notificaciones
         {% if notificaciones_sin_leer %}<span class="chip" style="margin-left: auto; background: var(--brand); color: #fff; border-color: transparent;">{{ notificaciones_sin_leer }}<span class="sr-only"> sin leer</span></span>{% endif %}

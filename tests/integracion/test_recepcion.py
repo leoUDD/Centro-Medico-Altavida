@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.agenda.models import Cita
+from apps.consentimientos import servicio as consentimientos
 from apps.notificaciones import recordatorios
 from apps.notificaciones.models import EjecucionRecordatorios, Notificacion, PreferenciasNotificacion, Recordatorio, ReglaRecordatorio
 from apps.pacientes.models import Paciente
@@ -40,6 +41,8 @@ class RecepcionBase(TestCase):
             fecha_nacimiento='1985-03-12', email='maria@correo.cl', telefono='+56 9 1234 4821',
         )
         PreferenciasNotificacion.objects.create(paciente=cls.paciente, canal_correo=True, canal_sms=True)
+        consentimientos.otorgar(cls.paciente, consentimientos.RECORDATORIOS_CORREO, cls.usuario)
+        consentimientos.otorgar(cls.paciente, consentimientos.RECORDATORIOS_SMS, cls.usuario)
 
     def cita_manana(self, hora, **kw):
         """Cita mañana a una hora local fija: así varias citas caen siempre el mismo día, sin importar cuándo se ejecute la prueba."""

@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.agenda import calendario
 from apps.agenda.models import Cita
+from apps.consentimientos import servicio as consentimientos
 
 from .models import EjecucionRecordatorios, Notificacion, PreferenciasNotificacion, Recordatorio, ReglaRecordatorio
 from .sms import SMSError, enviar_sms
@@ -41,13 +42,20 @@ def componer_mensaje(regla, cita):
     return _MARCADOR.sub(lambda m: valores[m.group(1)], regla.plantilla)
 
 
+_FINALIDAD_POR_CANAL = {
+    Recordatorio.Canal.CORREO: consentimientos.RECORDATORIOS_CORREO,
+    Recordatorio.Canal.SMS: consentimientos.RECORDATORIOS_SMS,
+}
+
+
 def _canales_permitidos(regla, preferencias):
+    """Un canal sale solo si la regla lo usa, el paciente lo prefiere y tiene consentimiento vigente para ese canal."""
     canales = []
     if regla.canal_correo and preferencias.canal_correo:
         canales.append(Recordatorio.Canal.CORREO)
     if regla.canal_sms and preferencias.canal_sms:
         canales.append(Recordatorio.Canal.SMS)
-    return canales
+    return [c for c in canales if consentimientos.vigente(preferencias.paciente, _FINALIDAD_POR_CANAL[c])]
 
 
 def generar(ahora=None):
@@ -121,6 +129,11 @@ def enviar_pendientes(recordatorios=None):
     recordatorios = recordatorios.select_related('cita__paciente', 'cita__profesional__usuario', 'cita__sucursal', 'regla')
     enviados = fallidos = 0
     for recordatorio in recordatorios:
+        # Se revisa otra vez al enviar: si el paciente revocó después de generarse, el aviso no sale.
+        if not consentimientos.vigente(recordatorio.cita.paciente, _FINALIDAD_POR_CANAL[recordatorio.canal]):
+            recordatorio.estado, recordatorio.error = Recordatorio.Estado.CANCELADO, 'Sin consentimiento vigente'
+            recordatorio.save(update_fields=['estado', 'error'])
+            continue
         try:
             _enviar_uno(recordatorio)
         except SMSError as error:

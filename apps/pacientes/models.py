@@ -55,9 +55,10 @@ class Paciente(models.Model):
     peso = CampoCifrado(blank=True)
     estatura = CampoCifrado(blank=True)
 
-    consentimiento_datos = models.BooleanField(default=False)
-    consentimiento_fecha = models.DateTimeField(null=True, blank=True)
-    recordatorios_activos = models.BooleanField(default=False)
+    # Toma de conocimiento del aviso de privacidad (versión y fecha). No es un consentimiento: la atención clínica se
+    # funda en la ley (Hito 1); los consentimientos, uno por finalidad, viven en apps/consentimientos.
+    aviso_privacidad_version = models.PositiveSmallIntegerField(null=True, blank=True)
+    aviso_privacidad_en = models.DateTimeField(null=True, blank=True)
 
     creado = models.DateTimeField(auto_now_add=True)
 

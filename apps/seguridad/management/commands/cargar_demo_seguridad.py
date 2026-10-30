@@ -56,7 +56,7 @@ class Command(BaseCommand):
             form = RegistroPacienteForm({
                 'nombres': 'María José', 'apellidos': 'Fuentes Soto', 'rut': '15.482.331-K',
                 'fecha_nacimiento': '1985-03-12', 'email': 'maria.fuentes@correo.example', 'telefono': '+56 9 1234 4821',
-                'clave': CLAVE_PACIENTE, 'clave2': CLAVE_PACIENTE, 'consentimiento_datos': 'on', 'recordatorios': 'on',
+                'clave': CLAVE_PACIENTE, 'clave2': CLAVE_PACIENTE, 'aviso_privacidad': 'on', 'recordatorios_correo': 'on', 'recordatorios_sms': 'on',
             })
             if not form.is_valid():
                 raise CommandError(f'Registro de demo inválido: {form.errors.as_json()}')

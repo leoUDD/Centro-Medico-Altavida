@@ -1,0 +1,35 @@
+{% extends "gestion_interna/recepcion/base_recepcion.html" %}
+{% block titulo %}Representantes legales{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Representantes legales de menores</h1>
+    <p class="muted" style="font-size: 15px;">Revisa en persona el documento que acredita la representación. No se guardan copias: solo cuál documento viste. Ambas personas deben tener cuenta de paciente.</p>
+  </div>
+</div>
+<form method="post" action="{% url 'consentimientos:registrar_representacion' %}" class="pila tarjeta tarjeta-lg" style="max-width: 560px;">
+  {% csrf_token %}
+  <label>RUT del menor <input name="rut_menor" class="mono" required></label>
+  <label>RUT del representante <input name="rut_representante" class="mono" required></label>
+  <label>Parentesco
+    <select name="parentesco" required>{% for v, n in parentescos %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select>
+  </label>
+  <label>Documento revisado en persona
+    <select name="acreditacion" required>{% for v, n in acreditaciones %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select>
+  </label>
+  <div class="acciones"><button type="submit" class="btn btn-primario btn-grande">Registrar representación</button></div>
+</form>
+
+<h2 style="margin-top: 24px;">Registradas</h2>
+<table class="tabla">
+  <thead><tr><th>Menor</th><th>Representante</th><th>Parentesco</th><th>Estado</th><th>Vigente hasta</th><th></th></tr></thead>
+  <tbody>
+  {% for r in lista %}
+    <tr><td class="mono">{{ r.menor.codigo }}</td><td class="mono">{{ r.representante.codigo }}</td><td>{{ r.get_parentesco_display }}</td><td>{{ r.get_estado_display }}</td><td>{{ r.vigente_hasta|date:"d-m-Y" }}</td>
+      <td>{% if r.estado == 'VERIFICADA' %}<form method="post" action="{% url 'consentimientos:terminar_representacion' r.pk %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn">Terminar</button></form>{% endif %}</td></tr>
+  {% empty %}
+    <tr><td colspan="6" class="muted">Sin representaciones.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

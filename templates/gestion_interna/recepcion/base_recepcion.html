@@ -11,6 +11,7 @@
       <a class="menu-item" href="{% url 'recepcion:dashboard' %}#resumen" {% if seccion == 'resumen' %}aria-current="page"{% endif %}>Resumen</a>
       <a class="menu-item" href="{% url 'recepcion:dashboard' %}#agenda">Agenda del día</a>
       <a class="menu-item" href="{% url 'recepcion:dashboard' %}#recordatorios" {% if seccion == 'recordatorios' %}aria-current="page"{% endif %}>Recordatorios</a>
+      <a class="menu-item" href="{% url 'consentimientos:representaciones' %}" {% if seccion == 'representaciones' %}aria-current="page"{% endif %}>Representantes legales</a>
     </div>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>
   </nav>

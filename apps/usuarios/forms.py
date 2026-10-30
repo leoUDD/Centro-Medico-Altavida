@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model, password_validation
 from django.utils import timezone
 from django.views.decorators.debug import sensitive_variables
 
+from apps.consentimientos import servicio as consentimientos
 from apps.pacientes.models import Paciente
 from apps.seguridad.indice import indice_correo, indice_rut
 from apps.seguridad.rut import normalizar_rut, rut_valido
@@ -24,11 +25,23 @@ class RegistroPacienteForm(forms.Form):
     telefono = forms.CharField(label='Teléfono celular', max_length=20)
     clave = forms.CharField(label='Contraseña', widget=forms.PasswordInput)
     clave2 = forms.CharField(label='Repite la contraseña', widget=forms.PasswordInput)
-    consentimiento_datos = forms.BooleanField(
-        label='Autorizo el tratamiento de mis datos personales y de salud',
-        error_messages={'required': 'Debes autorizar el tratamiento de tus datos para crear la cuenta.'},
+    # No es un consentimiento: la atención clínica no depende de él (Hito 1). Solo deja constancia de que se informó.
+    aviso_privacidad = forms.BooleanField(
+        label='Leí el aviso de privacidad',
+        error_messages={'required': 'Debes confirmar que leíste el aviso de privacidad para crear la cuenta.'},
     )
-    recordatorios = forms.BooleanField(label='Quiero recibir recordatorios de citas', required=False)
+    # Consentimientos opcionales, uno por canal y sin marcar de antemano.
+    recordatorios_correo = forms.BooleanField(label='Recordatorios de citas por correo', required=False)
+    recordatorios_sms = forms.BooleanField(label='Recordatorios de citas por SMS', required=False)
+
+    def clean_fecha_nacimiento(self):
+        nacimiento = self.cleaned_data['fecha_nacimiento']
+        hoy = timezone.localdate()
+        edad = hoy.year - nacimiento.year - ((hoy.month, hoy.day) < (nacimiento.month, nacimiento.day))
+        if edad < consentimientos.EDAD_CONSENTIMIENTO_PROPIO:
+            raise forms.ValidationError(
+                'Las cuentas de menores de edad las crea su representante legal en recepción, con documento.')
+        return nacimiento
 
     def clean_rut(self):
         rut = self.cleaned_data['rut']
@@ -67,10 +80,14 @@ class RegistroPacienteForm(forms.Form):
             username='p_' + secrets.token_hex(8), password=datos['clave'], rol=Usuario.Rol.PACIENTE,
             rut_indice=indice_rut(datos['rut']), correo_indice=indice_correo(datos['email']),
         )
-        Paciente.objects.create(
+        paciente = Paciente.objects.create(
             usuario=usuario, rut=datos['rut'], nombres=datos['nombres'], apellidos=datos['apellidos'],
             fecha_nacimiento=datos['fecha_nacimiento'].isoformat(), email=datos['email'],
-            telefono=datos['telefono'], consentimiento_datos=True, consentimiento_fecha=timezone.now(),
-            recordatorios_activos=datos['recordatorios'],
+            telefono=datos['telefono'],
         )
+        consentimientos.acusar_aviso(paciente, 1)
+        for campo, codigo in (('recordatorios_correo', consentimientos.RECORDATORIOS_CORREO),
+                              ('recordatorios_sms', consentimientos.RECORDATORIOS_SMS)):
+            if datos[campo]:
+                consentimientos.otorgar(paciente, codigo, usuario)
         return usuario

@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.consentimientos import servicio as consentimientos
 from apps.laboratorio.models import ResultadoExamen
 from apps.notificaciones.models import Notificacion, PreferenciasNotificacion
 from apps.pacientes.models import Paciente
@@ -134,6 +135,7 @@ class NotificacionesTests(PortalPacienteBase):
     def test_preferencias_por_defecto_y_guardado(self):
         self.assertFalse(PreferenciasNotificacion.objects.exists())
         self.assertTrue(self.client.get(reverse('notificaciones:lista')).context['preferencias'].recordar_24h)
+        consentimientos.otorgar(self.paciente, consentimientos.RECORDATORIOS_CORREO, self.usuario)
         self.client.post(reverse('notificaciones:preferencias'), {'canal_correo': 'on', 'recordar_2h': 'on'})
         p = PreferenciasNotificacion.objects.get(paciente=self.paciente)
         self.assertEqual(
@@ -143,8 +145,6 @@ class NotificacionesTests(PortalPacienteBase):
         self.assertFalse(PreferenciasNotificacion.objects.filter(paciente=self.otro).exists())
 
     def test_preferencias_iniciales_respetan_el_registro(self):
-        self.paciente.recordatorios_activos = False
-        self.paciente.save()
-        p = PreferenciasNotificacion.para(self.paciente)
+        p = PreferenciasNotificacion.para(self.paciente)  # sin consentimientos, los canales parten apagados
         self.assertFalse(p.canal_correo)
         self.assertFalse(p.canal_sms)
