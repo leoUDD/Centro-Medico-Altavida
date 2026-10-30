@@ -6,6 +6,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_POST
 
+from apps.auditoria import servicio as auditoria
+from apps.auditoria.models import Operacion, Resultado
 from apps.seguridad import intentos
 
 from .forms import LoginForm, RegistroPacienteForm
@@ -15,6 +17,7 @@ INICIO_POR_ROL = {
     'PACIENTE': 'pacientes:resultados',
     'ADMINISTRATIVO': 'recepcion:dashboard',
     'ADMIN_SISTEMA': 'admin:index',
+    'PRIVACIDAD': 'auditoria:eventos',
 }
 
 
@@ -27,7 +30,9 @@ def login_vista(request):
     status = 200
     if request.method == 'POST' and form.is_valid():
         identificador = form.cleaned_data['usuario']
+        huella = auditoria.huella_identificador(identificador)
         if intentos.bloqueado(request, identificador):
+            auditoria.registrar(Operacion.SESION_BLOQUEO, 'cuenta', '', Resultado.DENEGADO, actor_ref=huella)
             return render(request, 'cuentas/login.html', {
                 'form': form, 'error': 'Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.',
                 'next': request.GET.get('next', ''),
@@ -36,17 +41,21 @@ def login_vista(request):
         if usuario is not None:
             intentos.limpiar(request, identificador)
             login(request, usuario)
+            auditoria.registrar(Operacion.SESION_INICIO, 'cuenta', usuario.pk, actor=usuario)
             destino = request.POST.get('next', '')
             if destino and url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()}):
                 return redirect(destino)
             return redirect('inicio')
         intentos.registrar_fallo(request, identificador)
+        auditoria.registrar(Operacion.SESION_FALLO, 'cuenta', '', Resultado.FALLIDO, actor_ref=huella)
         error = 'Las credenciales no son correctas.'
     return render(request, 'cuentas/login.html', {'form': form, 'error': error, 'next': request.GET.get('next', '')}, status=status)
 
 
 @require_POST
 def logout_vista(request):
+    if request.user.is_authenticated:
+        auditoria.registrar(Operacion.SESION_CIERRE, 'cuenta', request.user.pk)
     logout(request)
     return redirect('login')
 

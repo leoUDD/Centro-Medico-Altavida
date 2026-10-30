@@ -16,6 +16,11 @@ PERMISOS = (
     ('gestionar_agenda', 'Confirmar y cancelar citas, y gestionar recordatorios'),
     ('editar_contacto_paciente', 'Corregir correo y teléfono de un paciente'),
     ('ver_bitacora', 'Consultar las bitácoras de acceso'),
+    ('ver_auditoria', 'Consultar y verificar el registro de auditoría (referencias seudónimas, sin datos personales)'),
+    ('gestionar_alertas', 'Revisar alertas de seguridad y registrar su resolución'),
+    ('ejecutar_contencion', 'Ejecutar acciones de contención: desactivar cuentas y revocar sesiones'),
+    ('gestionar_derechos', 'Evaluar y resolver solicitudes de ejercicio de derechos de los titulares'),
+    ('ver_consentimientos', 'Consultar el estado e historial de consentimientos de los pacientes'),
 )
 
 ROLES = {
@@ -28,11 +33,18 @@ ROLES = {
         'grupo': 'Personal administrativo',
         'permisos': ['ver_identidad', 'gestionar_agenda', 'editar_contacto_paciente'],
     },
-    'ADMIN_SISTEMA': {'grupo': 'Administrador del sistema', 'permisos': ['ver_bitacora']},
+    'ADMIN_SISTEMA': {
+        'grupo': 'Administrador del sistema', 'permisos': ['ver_bitacora', 'gestionar_alertas', 'ejecutar_contencion'],
+    },
+    # Función independiente de quien administra el sistema: supervisa el uso de los datos y atiende a los titulares.
+    'PRIVACIDAD': {
+        'grupo': 'Encargado de privacidad',
+        'permisos': ['ver_auditoria', 'gestionar_alertas', 'ejecutar_contencion', 'gestionar_derechos', 'ver_consentimientos'],
+    },
 }
 
 # Apps cuyos datos son clínicos o identificadores: el administrador del sistema no entra a ellas.
-APPS_CLINICAS = {'pacientes', 'fichas_clinicas', 'recetas', 'laboratorio', 'convenios'}
+APPS_CLINICAS = {'pacientes', 'fichas_clinicas', 'recetas', 'laboratorio', 'convenios', 'auditoria', 'consentimientos', 'derechos'}
 # Excepciones: las bitácoras sí las puede consultar (solo lectura), para auditar quién accedió a qué.
 BITACORAS = {
     'fichas_clinicas.view_accesoficha', 'pacientes.view_accesoidentidad', 'pacientes.view_accesoemergencia',
@@ -40,7 +52,8 @@ BITACORAS = {
 # Permisos de negocio que el administrador del sistema no puede ejercer aunque sea superusuario de Django.
 PERMISOS_CLINICOS = {f'usuarios.{codigo}' for codigo in (
     'portal_paciente', 'ver_identidad', 'ver_datos_clinicos', 'editar_datos_clinicos', 'emitir_recetas',
-    'acceso_emergencia', 'gestionar_agenda', 'editar_contacto_paciente',
+    'acceso_emergencia', 'gestionar_agenda', 'editar_contacto_paciente', 'ver_auditoria', 'gestionar_derechos',
+    'ver_consentimientos',
 )}
 
 

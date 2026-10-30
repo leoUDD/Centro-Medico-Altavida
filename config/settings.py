@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'apps.laboratorio',
     'apps.notificaciones',
     'apps.integraciones',
+    'apps.auditoria',
 ]
 
 MIDDLEWARE = [
@@ -68,6 +69,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.auditoria.middleware.ContextoAuditoriaMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -173,8 +175,10 @@ def _llave_obligatoria(nombre):
 CLAVE_CIFRADO = _llave_obligatoria('CLAVE_CIFRADO')
 CLAVE_IDENTIDAD = _llave_obligatoria('CLAVE_IDENTIDAD')
 CLAVE_INDICES = _llave_obligatoria('CLAVE_INDICES')
-if len({CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES}) != 3:
-    raise ImproperlyConfigured('CLAVE_CIFRADO, CLAVE_IDENTIDAD y CLAVE_INDICES deben ser distintas entre sí.')
+# Firma la cadena de hashes del registro de auditoría (apps/auditoria): sin ella no se puede falsificar un evento.
+CLAVE_AUDITORIA = _llave_obligatoria('CLAVE_AUDITORIA')
+if len({CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES, CLAVE_AUDITORIA}) != 4:
+    raise ImproperlyConfigured('CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES y CLAVE_AUDITORIA deben ser distintas entre sí.')
 
 # Solo para migrar datos cifrados antes del refuerzo del cifrado (ver manage.py rotar_llaves).
 CIFRADO_FORMATO_ANTERIOR = os.environ.get('CIFRADO_FORMATO_ANTERIOR', '') == '1'
@@ -246,3 +250,7 @@ LOGGING = {
         'django.server': {'handlers': ['consola'], 'level': 'INFO', 'propagate': False},
     },
 }
+
+
+# Auditoría: meses que se conservan los eventos antes de poder eliminarse (el trigger de la base impide menos de 24).
+AUDITORIA_RETENCION_MESES = 24

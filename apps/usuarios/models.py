@@ -17,6 +17,7 @@ class Usuario(AbstractUser):
         MEDICO = 'MEDICO', 'Médico'
         ADMINISTRATIVO = 'ADMINISTRATIVO', 'Personal administrativo'
         ADMIN_SISTEMA = 'ADMIN_SISTEMA', 'Administrador del sistema'
+        PRIVACIDAD = 'PRIVACIDAD', 'Encargado de privacidad'
 
     # Del personal (médicos, administrativos, administradores) el correo es dato laboral y va en claro.
     # De los pacientes no se guarda: su correo vive cifrado en IdentidadPaciente y aquí solo queda `correo_indice`.

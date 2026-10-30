@@ -1,0 +1,20 @@
+{% extends "base/base.html" %}
+{% block cuerpo %}
+<div class="panel">
+  <nav class="menu" aria-label="Menú de privacidad">
+    <div class="marca">{% include "base/_logo.html" %}<span>Altavida</span></div>
+    <div class="menu-usuario">
+      <strong>{{ user.nombre_visible }}</strong>
+      <span class="muted small">Encargado de privacidad</span>
+    </div>
+    <div class="menu-lista">
+      <a class="menu-item" href="{% url 'auditoria:eventos' %}" {% if seccion == 'auditoria' %}aria-current="page"{% endif %}>Auditoría</a>
+    </div>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="menu-item" style="color: var(--ink-muted);">Cerrar sesión</button></form>
+  </nav>
+  <main class="contenido">
+    {% for m in messages %}<p class="{% if m.level_tag == 'error' %}alerta-error{% else %}alerta-ok{% endif %}" role="status">{{ m }}</p>{% endfor %}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

@@ -5,6 +5,8 @@ from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.auditoria import servicio as auditoria
+from apps.auditoria.models import Operacion
 from apps.notificaciones.models import Notificacion
 
 from .calendario import cuando
@@ -31,6 +33,7 @@ def _cancelar_original(excluir):
 
 
 def _avisar(cita, titulo, detalle):
+    auditoria.registrar(Operacion.CITA_RESERVA, 'cita', cita.pk, detalle={'tipo': cita.tipo})
     Notificacion.objects.create(
         paciente=cita.paciente, tipo=Notificacion.Tipo.CITA, titulo=titulo, detalle=detalle, cita=cita,
     )
@@ -108,12 +111,14 @@ def confirmar_asistencia(cita):
     _cita_modificable(cita)
     cita.estado = Cita.Estado.CONFIRMADA
     cita.save(update_fields=['estado'])
+    auditoria.registrar(Operacion.CITA_CAMBIO, 'cita', cita.pk, detalle={'accion': 'confirmar'})
 
 
 def cancelar_cita(cita):
     _cita_modificable(cita)
     cita.estado = Cita.Estado.CANCELADA
     cita.save(update_fields=['estado'])
+    auditoria.registrar(Operacion.CITA_CAMBIO, 'cita', cita.pk, detalle={'accion': 'cancelar'})
     if cita.orden_id:  # la orden de Altavida vuelve a quedar disponible para reagendar
         cita.orden.utilizada = False
         cita.orden.save(update_fields=['utilizada'])

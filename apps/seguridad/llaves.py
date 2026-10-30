@@ -61,3 +61,8 @@ def llave_por_identificador(proposito, kid):
 @sensitive_variables()
 def llave_de_indices():
     return decodificar(settings.CLAVE_INDICES, 'CLAVE_INDICES')
+
+
+@sensitive_variables()
+def llave_de_auditoria():
+    return decodificar(settings.CLAVE_AUDITORIA, 'CLAVE_AUDITORIA')
