@@ -208,6 +208,8 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # Recordatorios
 
+# En desarrollo los correos (códigos de verificación, recordatorios) se imprimen en la consola del servidor.
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Centro Médico Altavida <no-responder@altavida.example>')
 # "console" solo registra el SMS en el log; un proveedor real se conecta en apps/notificaciones/sms.py.
 SMS_BACKEND = os.environ.get('SMS_BACKEND', 'console')
