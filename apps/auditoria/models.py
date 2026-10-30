@@ -49,6 +49,7 @@ class Operacion(models.TextChoices):
     ALERTA_GENERADA = 'ALERTA_GENERADA', 'Alerta de seguridad generada'
     ALERTA_REVISADA = 'ALERTA_REVISADA', 'Alerta de seguridad revisada'
     CONTENCION = 'CONTENCION', 'Acción de contención ejecutada'
+    INCIDENTE_CAMBIO = 'INCIDENTE_CAMBIO', 'Gestión de un incidente de seguridad'
     AUDITORIA_CONSULTA = 'AUDITORIA_CONSULTA', 'Consulta del registro de auditoría'
     AUDITORIA_VERIFICACION = 'AUDITORIA_VERIFICACION', 'Verificación de integridad del registro'
     AUDITORIA_PURGA = 'AUDITORIA_PURGA', 'Eliminación de eventos vencidos'
@@ -209,3 +210,100 @@ class EstadoSistema(models.Model):
     @classmethod
     def actual(cls):
         return cls.objects.order_by('pk').first() or cls.objects.create()
+
+
+class IncidenteSeguridad(models.Model):
+    """Caso de respuesta a incidentes. Une alertas, contención, notificaciones obligatorias y lecciones aprendidas.
+
+    Distingue tres niveles: alerta (la dispara una regla), evento sospechoso (alguien lo está analizando) e incidente
+    confirmado (hay compromiso real de datos, de cuentas o del servicio). Sin datos personales: solo códigos y cifras.
+    """
+
+    class Clasificacion(models.TextChoices):
+        SOSPECHOSO = 'SOSPECHOSO', 'Evento sospechoso (en análisis)'
+        CONFIRMADO = 'CONFIRMADO', 'Incidente confirmado'
+        FALSO_POSITIVO = 'FALSO_POSITIVO', 'Falso positivo'
+
+    class Fase(models.TextChoices):
+        ANALISIS = 'ANALISIS', 'Detección y análisis'
+        CONTENCION = 'CONTENCION', 'Contenido'
+        ERRADICACION = 'ERRADICACION', 'Erradicado'
+        RECUPERACION = 'RECUPERACION', 'Recuperado'
+        CERRADO = 'CERRADO', 'Cerrado'
+
+    codigo = models.CharField(max_length=12, unique=True)
+    alertas = models.ManyToManyField(AlertaSeguridad, blank=True, related_name='incidentes')
+    clasificacion = models.CharField(max_length=15, choices=Clasificacion.choices, default=Clasificacion.SOSPECHOSO)
+    fase = models.CharField(max_length=15, choices=Fase.choices, default=Fase.ANALISIS)
+    severidad = models.CharField(max_length=10, choices=Severidad.choices)
+    resumen = models.CharField(max_length=200)
+    # T0: el momento en que la institución toma conocimiento. Desde él corren todos los plazos.
+    conocido_en = models.DateTimeField(default=timezone.now)
+    responsable_id = models.PositiveIntegerField(null=True, blank=True)
+
+    # Criterios de la Ley 21.663 (art. 27) para decidir si tiene efectos significativos.
+    afecta_datos_personales = models.BooleanField(default=False)
+    afecta_continuidad = models.BooleanField(default=False)
+    afecta_salud_personas = models.BooleanField(default=False)
+    titulares_aprox = models.PositiveIntegerField(default=0)
+    categorias_datos = models.CharField(max_length=120, blank=True)  # p. ej. "clínicos, contacto"
+    hay_datos_sensibles = models.BooleanField(default=False)
+    hay_menores_14 = models.BooleanField(default=False)
+    riesgo_razonable = models.BooleanField(default=False)  # riesgo para derechos y libertades de los titulares
+
+    contenido_en = models.DateTimeField(null=True, blank=True)
+    erradicado_en = models.DateTimeField(null=True, blank=True)
+    recuperado_en = models.DateTimeField(null=True, blank=True)
+    evidencia_sha256 = models.CharField(max_length=64, blank=True)
+
+    # Notificaciones: decisión autorizada por una persona distinta de quien la propone.
+    notificacion_propuesta_por = models.PositiveIntegerField(null=True, blank=True)
+    notificacion_autorizada_por = models.PositiveIntegerField(null=True, blank=True)
+    notificacion_autorizada_en = models.DateTimeField(null=True, blank=True)
+    csirt_alerta_en = models.DateTimeField(null=True, blank=True)
+    csirt_actualizacion_en = models.DateTimeField(null=True, blank=True)
+    csirt_informe_final_en = models.DateTimeField(null=True, blank=True)
+    agencia_en = models.DateTimeField(null=True, blank=True)
+    titulares_en = models.DateTimeField(null=True, blank=True)
+    sin_notificar_motivo = models.CharField(max_length=200, blank=True)  # por qué no corresponde notificar
+
+    lecciones = models.TextField(blank=True)
+    creado_por = models.PositiveIntegerField(null=True, blank=True)
+    cerrado_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-conocido_en']
+        verbose_name = 'incidente de seguridad'
+        verbose_name_plural = 'incidentes de seguridad'
+
+    def __str__(self):
+        return f'{self.codigo} ({self.get_clasificacion_display()})'
+
+    @property
+    def efectos_significativos(self):
+        """Ley 21.663 art. 27: puede interrumpir un servicio esencial, afectar la salud de personas o sistemas con datos personales."""
+        return self.afecta_continuidad or self.afecta_salud_personas or self.afecta_datos_personales
+
+    @property
+    def debe_notificar_titulares(self):
+        """Ley 21.719 art. 14 sexies: datos sensibles, de menores de 14 años o económicos, con riesgo razonable."""
+        return self.afecta_datos_personales and self.riesgo_razonable and (self.hay_datos_sensibles or self.hay_menores_14)
+
+    @property
+    def plazos(self):
+        """Fechas límite según la ley o la política interna. Las que no aplican quedan fuera."""
+        from datetime import timedelta
+        t0 = self.conocido_en
+        plazos = {}
+        if self.clasificacion == self.Clasificacion.FALSO_POSITIVO:
+            return plazos
+        if self.efectos_significativos:
+            plazos['csirt_alerta'] = ('Alerta temprana al CSIRT Nacional (Ley 21.663 art. 9: 3 horas)', t0 + timedelta(hours=3), self.csirt_alerta_en)
+            plazos['csirt_actualizacion'] = ('Actualización al CSIRT (72 horas)', t0 + timedelta(hours=72), self.csirt_actualizacion_en)
+            if self.csirt_alerta_en:
+                plazos['csirt_informe'] = ('Informe final (15 días desde la alerta temprana)', self.csirt_alerta_en + timedelta(days=15), self.csirt_informe_final_en)
+        if self.afecta_datos_personales and self.riesgo_razonable:
+            plazos['agencia'] = ('Aviso a la Agencia de Protección de Datos (Ley 21.719 art. 14 sexies: sin dilaciones indebidas; meta interna 72 horas)', t0 + timedelta(hours=72), self.agencia_en)
+        if self.debe_notificar_titulares:
+            plazos['titulares'] = ('Aviso a los titulares afectados (sin dilaciones indebidas; meta interna 72 horas)', t0 + timedelta(hours=72), self.titulares_en)
+        return plazos

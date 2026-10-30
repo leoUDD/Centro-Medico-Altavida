@@ -1,0 +1,72 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Caso {{ i.codigo }}{% endblock %}
+{% block contenido %}
+<div class="cabecera"><div><h1>Caso <span class="mono">{{ i.codigo }}</span> · {{ i.get_severidad_display }}</h1>
+<p class="muted" style="font-size: 15px;">{{ i.resumen }} · {{ i.get_clasificacion_display }} · {{ i.get_fase_display }} · conocido el {{ i.conocido_en|date:"d-m-Y H:i" }}</p></div>
+<a href="{% url 'auditoria:incidentes' %}" class="btn">← Volver</a></div>
+
+<section class="tarjeta tarjeta-pad pila">
+  <h2>Plazos de notificación</h2>
+  {% for clave, texto, limite, hecho, vencido in plazos %}
+  <p>{{ texto }}: límite {{ limite|date:"d-m-Y H:i" }} — {% if hecho %}enviada el {{ hecho|date:"d-m-Y H:i" }}{% elif vencido %}<strong>VENCIDO sin enviar</strong>{% else %}pendiente{% endif %}</p>
+  {% empty %}<p class="muted">Con los criterios registrados no corresponde notificar a ninguna autoridad ni a los titulares.</p>{% endfor %}
+  <p class="muted small">Los plazos de 3 y 72 horas y los 15 días vienen de la Ley 21.663. Para la Agencia y los titulares la Ley 21.719 exige actuar "sin dilaciones indebidas"; las 72 horas son una meta interna. Verifica la vigencia de la Ley 21.719 antes de usar esos avisos.</p>
+</section>
+
+{% if i.fase != 'CERRADO' %}
+<form method="post" action="{% url 'auditoria:incidente_clasificar' i.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 640px; margin-top: 16px;">
+  {% csrf_token %}
+  <h2>Clasificación y criterios</h2>
+  <label>Clasificación <select name="clasificacion">{% for v, n in clasificaciones %}<option value="{{ v }}" {% if v == i.clasificacion %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+  <label class="casilla"><input type="checkbox" name="afecta_datos_personales" {% if i.afecta_datos_personales %}checked{% endif %}><span>Afecta sistemas o datos personales</span></label>
+  <label class="casilla"><input type="checkbox" name="afecta_continuidad" {% if i.afecta_continuidad %}checked{% endif %}><span>Interrumpe la continuidad del servicio</span></label>
+  <label class="casilla"><input type="checkbox" name="afecta_salud_personas" {% if i.afecta_salud_personas %}checked{% endif %}><span>Puede afectar la salud de personas</span></label>
+  <label class="casilla"><input type="checkbox" name="hay_datos_sensibles" {% if i.hay_datos_sensibles %}checked{% endif %}><span>Hay datos sensibles (salud)</span></label>
+  <label class="casilla"><input type="checkbox" name="hay_menores_14" {% if i.hay_menores_14 %}checked{% endif %}><span>Hay datos de menores de 14 años</span></label>
+  <label class="casilla"><input type="checkbox" name="riesgo_razonable" {% if i.riesgo_razonable %}checked{% endif %}><span>Hay riesgo razonable para los derechos de los titulares</span></label>
+  <label>Titulares afectados (aprox.) <input name="titulares_aprox" inputmode="numeric" value="{{ i.titulares_aprox }}"></label>
+  <label>Categorías de datos <input name="categorias_datos" maxlength="120" value="{{ i.categorias_datos }}"></label>
+  <div class="acciones"><button type="submit" class="btn btn-primario">Guardar clasificación</button></div>
+</form>
+
+<form method="post" action="{% url 'auditoria:incidente_avanzar' i.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 640px; margin-top: 16px;">
+  {% csrf_token %}
+  <h2>Fase</h2>
+  <label>Huella SHA-256 de la evidencia (se exige al pasar a "contenido") <input name="evidencia" class="mono" maxlength="64" value="{{ i.evidencia_sha256 }}"></label>
+  <div class="acciones"><button type="submit" class="btn btn-primario">Avanzar a la siguiente fase</button></div>
+</form>
+
+<section class="tarjeta tarjeta-pad pila" style="margin-top: 16px;">
+  <h2>Autorización y registro de notificaciones</h2>
+  <p>Propuesta: {% if i.notificacion_propuesta_por %}sí{% else %}no{% endif %} · Autorizada por otra persona: {% if i.notificacion_autorizada_por %}sí ({{ i.notificacion_autorizada_en|date:"d-m-Y H:i" }}){% else %}no{% endif %}</p>
+  <form method="post" action="{% url 'auditoria:incidente_proponer' i.codigo %}">{% csrf_token %}<button type="submit" class="btn">Proponer notificar</button></form>
+  {% if puede_autorizar %}<form method="post" action="{% url 'auditoria:incidente_autorizar' i.codigo %}">{% csrf_token %}<button type="submit" class="btn">Autorizar notificación</button></form>{% endif %}
+  <form method="post" action="{% url 'auditoria:incidente_notificada' i.codigo %}" style="display: flex; gap: 8px;">
+    {% csrf_token %}
+    <select name="cual">
+      <option value="csirt_alerta">Alerta temprana al CSIRT</option><option value="csirt_actualizacion">Actualización al CSIRT</option>
+      <option value="csirt_informe">Informe final al CSIRT</option><option value="agencia">Aviso a la Agencia</option><option value="titulares">Aviso a los titulares</option>
+    </select>
+    <button type="submit" class="btn">Registrar como enviada</button>
+  </form>
+  <form method="post" action="{% url 'auditoria:incidente_sin_notificar' i.codigo %}" class="pila">
+    {% csrf_token %}
+    <label>Si no corresponde notificar, explica por qué <input name="motivo" maxlength="200"></label>
+    <button type="submit" class="btn">Registrar justificación</button>
+  </form>
+</section>
+
+<form method="post" action="{% url 'auditoria:incidente_lecciones' i.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 640px; margin-top: 16px;">
+  {% csrf_token %}
+  <h2>Lecciones aprendidas</h2>
+  <textarea name="lecciones" rows="5">{{ i.lecciones }}</textarea>
+  <div class="acciones"><button type="submit" class="btn btn-primario">Guardar</button></div>
+</form>
+
+<section class="tarjeta tarjeta-pad pila" style="margin-top: 16px;">
+  <h2>Cierre</h2>
+  {% if pendientes %}<p>Aún falta:</p><ul>{% for p in pendientes %}<li>{{ p }}</li>{% endfor %}</ul>{% else %}<p>Se cumplen todas las condiciones de cierre.</p>{% endif %}
+  <form method="post" action="{% url 'auditoria:incidente_cerrar' i.codigo %}">{% csrf_token %}<button type="submit" class="btn btn-primario">Cerrar caso</button></form>
+</section>
+{% endif %}
+{% endblock %}

@@ -26,7 +26,7 @@ RETENCION_MESES_POR_DEFECTO = 24
 CLAVES_DETALLE = frozenset({
     'cantidad', 'finalidad', 'campo', 'estado_anterior', 'estado_nuevo', 'regla', 'motivo_codigo', 'vista',
     'tipo', 'version', 'canal', 'formato', 'codigo_solicitud', 'umbral', 'periodo', 'rol_anterior', 'rol_nuevo',
-    'accion', 'metodo', 'cuenta', 'eventos', 'alerta',
+    'accion', 'metodo', 'cuenta', 'eventos', 'alerta', 'incidente',
 })
 # Nombres que nunca se aceptan aunque alguien los agregue a la lista: credenciales y secretos.
 CLAVES_PROHIBIDAS = ('clave', 'contrasena', 'password', 'token', 'llave', 'secret', 'sesion', 'cookie')
