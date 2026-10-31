@@ -261,5 +261,8 @@ AUDITORIA_RETENCION_MESES = 24
 # conservación de la ficha clínica (DS 41/2012 MINSAL).
 DERECHOS_PLAZO_DIAS = 30
 FICHA_CONSERVACION_ANIOS = 15
+# Retención de los datos de gestión no clínicos (contacto y contacto de emergencia): meses desde la última atención
+# (política del Hito 2). Pasado ese plazo se eliminan aunque la ficha siga vigente.
+GESTION_RETENCION_MESES = 24
 DERECHOS_DESCARGA_DIAS = 7
 DERECHOS_DESCARGAS_MAX = 3

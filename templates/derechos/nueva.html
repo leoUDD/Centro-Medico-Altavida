@@ -16,6 +16,7 @@
   <fieldset><legend>Solo si quieres corregir un dato</legend>
     <label>Dato <select name="campo"><option value="">—</option>{% for v, n in campos %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
     <label>Valor correcto (o qué está equivocado, si es un dato clínico) <input name="valor" maxlength="200"></label>
+    <span class="ayuda">Formatos: correo (nombre@dominio.cl), teléfono con 8 a 15 dígitos (+56912345678), fecha como AAAA-MM-DD o DD/MM/AAAA, nombres solo con letras.</span>
   </fieldset>
   <div class="acciones">
     <a href="{% url 'derechos:mis' %}" class="btn btn-grande">Cancelar</a>

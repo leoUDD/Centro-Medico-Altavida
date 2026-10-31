@@ -102,3 +102,62 @@ class AnonimizacionTests(TestCase):
         self.assertEqual(filas[0], anonimizacion.COLUMNAS)
         for fila in filas[1:]:
             self.assertRegex(fila[0], r'^\d{4}-\d{2}$')  # solo año-mes, nunca el día
+
+
+class RetencionDePersonasTests(TestCase):
+    """Contacto a los 24 meses y ficha a los 15 años, siempre contados desde la última atención."""
+
+    def setUp(self):
+        from apps.consentimientos import servicio as consentimientos
+        self.consentimientos = consentimientos
+        self.sede = Sucursal.objects.create(nombre='Sede')
+        self.medico = Usuario.objects.create_user('med', email='m@c.cl', password=CLAVE, rol=Usuario.Rol.MEDICO)
+
+    def paciente(self, rut, hace_dias, correo='a@c.cl'):
+        p = Paciente.objects.create(rut=rut, nombres='Ana', apellidos='Pérez', email=correo, telefono='+56911112222',
+                                    contacto_emergencia_nombre='Luis', contacto_emergencia_telefono='+56933334444')
+        inicio = timezone.now() - timedelta(days=hace_dias)
+        Cita.objects.create(paciente=p, tipo='CONSULTA', sucursal=self.sede, inicio=inicio, fin=inicio + timedelta(minutes=30))
+        d = Diagnostico.objects.create(paciente=p, medico=self.medico, diagnostico='Gastritis')
+        Diagnostico.objects.filter(pk=d.pk).update(fecha=inicio)  # la fecha es automática: se fija la de la atención
+        return p
+
+    def test_el_contacto_se_elimina_a_los_24_meses_pero_la_ficha_se_conserva(self):
+        vieja = self.paciente('12.345.678-5', 800)
+        self.consentimientos.otorgar(vieja, 'RECORDATORIOS_CORREO', None)
+        self.assertEqual(retencion.purgar()['contactos_vencidos'], 1)
+        vieja = Paciente.objects.get(pk=vieja.pk)
+        self.assertEqual((vieja.email, vieja.telefono, vieja.contacto_emergencia_nombre), ('', '', ''))
+        self.assertEqual(vieja.nombres, 'Ana')  # la identidad de la ficha sigue
+        self.assertTrue(vieja.diagnosticos.exists() and vieja.citas.exists())
+        self.assertFalse(self.consentimientos.vigente(vieja, 'RECORDATORIOS_CORREO'))
+        self.assertTrue(vieja.registros_consentimiento.filter(accion='REVOCADO', canal='RETENCION').exists())
+
+    def test_quien_se_atendio_hace_menos_de_24_meses_conserva_su_contacto(self):
+        reciente = self.paciente('11.111.111-1', 300)
+        self.assertEqual(retencion.purgar()['contactos_vencidos'], 0)
+        self.assertEqual(Paciente.objects.get(pk=reciente.pk).email, 'a@c.cl')
+
+    def test_repetir_la_purga_no_hace_nada_ni_ensucia_la_auditoria(self):
+        self.paciente('12.345.678-5', 800)
+        retencion.purgar()
+        self.assertEqual(retencion.purgar()['contactos_vencidos'], 0)
+
+    def test_la_ficha_se_elimina_recien_pasados_15_anios(self):
+        dentro = self.paciente('12.345.678-5', 365 * 14)
+        fuera = self.paciente('11.111.111-1', 365 * 16)
+        resultado = retencion.purgar()
+        self.assertEqual(resultado['fichas_vencidas'], 1)
+        self.assertTrue(dentro.diagnosticos.exists())
+        fuera = Paciente.objects.get(pk=fuera.pk)
+        self.assertFalse(fuera.diagnosticos.exists() or fuera.citas.exists())
+        self.assertFalse(hasattr(fuera, 'identidad'))
+        self.assertIsNotNone(fuera.datos_bloqueados_desde)
+
+    def test_la_purga_queda_en_la_auditoria_sin_datos_personales(self):
+        from apps.auditoria.models import EventoAuditoria, Operacion
+        p = self.paciente('11.111.111-1', 365 * 16)
+        retencion.purgar()
+        eventos = EventoAuditoria.objects.filter(operacion=Operacion.RETENCION_APLICADA, recurso_ref=p.codigo)
+        self.assertEqual([e.detalle for e in eventos], [{'regla': 'contacto_vencido'}, {'regla': 'ficha_vencida'}])
+        self.assertTrue(eventos.exists())
