@@ -2,7 +2,7 @@
 {% block titulo %}Solicitud {{ s.codigo }}{% endblock %}
 {% block contenido %}
 <div class="cabecera"><div><h1>Solicitud <span class="mono">{{ s.codigo }}</span></h1>
-<p class="muted" style="font-size: 15px;">{{ s.get_tipo_display }} · {{ s.get_estado_display }} · Respuesta antes del {{ s.plazo_hasta|date:"d-m-Y" }}</p></div></div>
+<p class="muted" style="font-size: 15px;">{{ s.get_tipo_display }} · {{ s.get_estado_display }} · Plazo de respuesta: hasta el {{ s.plazo_hasta|date:"d-m-Y" }} (30 días desde tu solicitud)</p></div></div>
 
 {% if s.estado == Estado.EN_VERIFICACION %}
 <form method="post" action="{% url 'derechos:verificar' s.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 560px;">
