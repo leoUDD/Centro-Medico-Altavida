@@ -18,6 +18,7 @@ from apps.consentimientos.models import Consentimiento, Representacion
 from apps.notificaciones.models import Notificacion, PreferenciasNotificacion, Recordatorio
 from apps.seguridad.indice import indice_ciego, indice_correo
 
+from . import validaciones
 from .models import HistorialSolicitud, SolicitudDerecho
 
 Estado = SolicitudDerecho.Estado
@@ -86,6 +87,10 @@ def crear(solicitante, paciente, tipo, usuario, campo='', valor=''):
             raise DerechosError('Indica qué dato quieres corregir y cuál es el valor correcto.')
         if campo == SolicitudDerecho.Campo.CLINICO and not valor.strip():
             raise DerechosError('Describe qué dato clínico crees que está equivocado.')
+        try:
+            valor = validaciones.normalizar(campo, valor)
+        except validaciones.ValorInvalido as error:
+            raise DerechosError(str(error))
     else:
         campo, valor = '', ''
     nivel = 1 if (tipo == Tipo.RECTIFICACION and campo not in SolicitudDerecho.CAMPOS_SENSIBLES
@@ -225,6 +230,10 @@ def _suprimir(paciente, ejecutor):
 
 def _rectificar(solicitud, ejecutor):
     paciente, campo, valor = solicitud.paciente, solicitud.campo, solicitud.valor_propuesto
+    try:  # segunda barrera: la solicitud pudo fabricarse a mano o venir de antes de existir esta validación
+        valor = validaciones.normalizar(campo, valor)
+    except validaciones.ValorInvalido as error:
+        raise DerechosError(str(error))
     if campo == 'email':
         from django.contrib.auth import get_user_model
         if get_user_model().objects.filter(correo_indice=indice_correo(valor)).exclude(pk=paciente.usuario_id).exists():

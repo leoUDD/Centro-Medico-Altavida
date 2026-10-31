@@ -11,7 +11,7 @@ from django.utils import timezone
 from apps.auditoria.models import EventoAuditoria, Operacion
 from apps.consentimientos import servicio as consentimientos
 from apps.consentimientos.models import Consentimiento, Representacion
-from apps.derechos import servicio
+from apps.derechos import servicio, validaciones
 from apps.derechos.models import HistorialSolicitud, SolicitudDerecho
 from apps.fichas_clinicas.models import Diagnostico
 from apps.notificaciones.models import Notificacion
@@ -373,3 +373,51 @@ class MenoresYAccesoTests(Flujo):
             list(HistorialSolicitud.objects.filter(solicitud=s).values_list('estado_nuevo', flat=True)),
             ['RECIBIDA', 'EN_VERIFICACION', 'EN_EVALUACION', 'RESUELTA', 'CERRADA'],
         )
+
+
+class ValidacionRectificacionTests(Flujo):
+    """El valor propuesto se valida al recibir la solicitud y otra vez al ejecutarla."""
+
+    def rechaza(self, campo, valor):
+        with self.assertRaises(servicio.DerechosError):
+            self.crear(T.RECTIFICACION, campo=campo, valor=valor)
+        self.assertFalse(SolicitudDerecho.objects.filter(paciente=self.ana, tipo=T.RECTIFICACION).exists())
+
+    def test_rechaza_valores_con_formato_invalido(self):
+        for campo, valor in [
+            ('email', 'sin-arroba'), ('email', 'a@b'), ('email', 'x' * 250 + '@correo.cl'),
+            ('telefono', 'abc'), ('telefono', '1234'), ('telefono', '+56 9 12345678901234567'),
+            ('fecha_nacimiento', 'banana'), ('fecha_nacimiento', '2001-02-30'), ('fecha_nacimiento', '1850-01-01'),
+            ('fecha_nacimiento', (timezone.localdate() + timedelta(days=1)).isoformat()),
+            ('nombres', 'Ana123'), ('nombres', '<script>'), ('apellidos', 'P' * 101),
+        ]:
+            with self.subTest(campo=campo, valor=valor[:20]):
+                self.rechaza(campo, valor)
+
+    def test_normaliza_los_valores_aceptados(self):
+        casos = {
+            'telefono': ('+56 9 5555-0000', '+56955550000'), 'email': ('  Nuevo@Correo.CL ', 'nuevo@correo.cl'),
+            'nombres': ('  María   José ', 'María José'), 'fecha_nacimiento': ('05/03/1990', '1990-03-05'),
+        }
+        for campo, (entrada, esperado) in casos.items():
+            with self.subTest(campo=campo):
+                self.assertEqual(validaciones.normalizar(campo, entrada), esperado)
+        s = self.crear(T.RECTIFICACION, campo='telefono', valor='+56 9 5555-0000')
+        self.assertEqual(s.valor_propuesto, '+56955550000')
+
+    def test_una_solicitud_fabricada_con_valor_invalido_no_se_aplica(self):
+        s = self.verificada(T.RECTIFICACION, campo='fecha_nacimiento', valor='1990-03-05')
+        SolicitudDerecho.objects.filter(pk=s.pk).update(valor_propuesto='banana')  # alguien salta la validación inicial
+        s.refresh_from_db()
+        antes = self.ana.fecha_nacimiento
+        with self.assertRaises(servicio.DerechosError):
+            servicio.resolver(s, self.encargado, R.EJECUTADA)
+        self.ana.refresh_from_db()
+        self.assertEqual(self.ana.fecha_nacimiento, antes)
+        self.assertIsNotNone(self.ana.edad)
+
+    def test_el_formulario_muestra_el_error_y_no_crea_la_solicitud(self):
+        self.client.force_login(self.u_ana)
+        r = self.client.post(reverse('derechos:nueva'), {'tipo': T.RECTIFICACION, 'campo': 'telefono', 'valor': 'abc'}, follow=True)
+        self.assertContains(r, 'El teléfono debe tener')
+        self.assertFalse(SolicitudDerecho.objects.exists())
