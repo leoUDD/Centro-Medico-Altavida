@@ -63,7 +63,7 @@ El historial responde "quién decidió qué, sobre qué texto y cuándo" y nada 
 
 Aplica porque el centro atiende menores. Regla adoptada: **hasta los 18 años el consentimiento lo da el representante legal.**
 
-1. El registro público rechaza a menores: la cuenta de un menor la crea su representante.
+1. El registro público rechaza a menores: un menor no crea cuenta propia. Su ficha puede existir sin cuenta (la abre el médico) y quien actúa en su nombre es su representante, desde su propia cuenta.
 2. En recepción, el representante acredita en persona el vínculo (certificado de nacimiento, resolución judicial u otro documento legal). El personal registra **qué documento revisó**, quién verificó y cuándo; no se escanea ni se guarda copia. Ambas personas deben existir como pacientes.
 3. La representación nace `VERIFICADA` con una fecha `vigente_hasta` (el día que el menor cumple 18). Recepción puede terminarla antes.
 4. El representante ve a su representado en "Mis consentimientos" y decide por él. Cada registro guarda `otorgante = REPRESENTANTE` y la representación usada.
