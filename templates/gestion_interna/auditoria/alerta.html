@@ -1,0 +1,77 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Alerta #{{ alerta.id }}{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Alerta #{{ alerta.id }} · {{ alerta.get_severidad_display }}</h1>
+    <p class="muted" style="font-size: 15px;">{{ alerta.resumen }}</p>
+  </div>
+  <a href="{% url 'auditoria:alertas' %}" class="btn">← Volver a las alertas</a>
+</div>
+
+<div class="dos-col">
+  <section class="tarjeta tarjeta-pad principal" style="display: flex; flex-direction: column; gap: 16px;">
+    <h2>Detalle</h2>
+    <dl class="dl-rejilla">
+      <div><dt>Estado</dt><dd>{{ alerta.get_estado_display }}</dd></div>
+      <div><dt>Regla</dt><dd class="mono" style="font-weight: 400;">{{ alerta.regla }}</dd></div>
+      <div><dt>Detectada</dt><dd class="mono" style="font-weight: 400;">{{ alerta.fecha|date:"d-m-Y H:i" }}</dd></div>
+      <div><dt>Cantidad</dt><dd>{{ alerta.cantidad }}</dd></div>
+      <div><dt>Cuenta</dt><dd class="mono" style="font-weight: 400;">{% if objetivo %}#{{ objetivo.pk }} · {{ objetivo.username }} ({{ objetivo.get_rol_display }}){% elif alerta.actor_id %}#{{ alerta.actor_id }}{% else %}—{% endif %}</dd></div>
+      <div><dt>Referencia</dt><dd class="mono" style="font-weight: 400;">{{ alerta.recurso_ref|default:"—" }}</dd></div>
+      <div><dt>Evidencia (SHA-256)</dt><dd class="mono" style="font-weight: 400; font-size: 12px;">{{ alerta.evidencia_sha256|default:"sin preservar" }}</dd></div>
+      <div><dt>Nota</dt><dd style="font-weight: 400;">{{ alerta.nota|default:"—" }}</dd></div>
+    </dl>
+
+    {% if siguientes %}
+    <hr class="sep">
+    <form method="post" action="{% url 'auditoria:alerta_estado' alerta.pk %}" class="pila" style="gap: 12px;">
+      {% csrf_token %}
+      <h2>Clasificar</h2>
+      <div class="campo">
+        <label for="estado">Nuevo estado</label>
+        <select id="estado" name="estado">{% for valor, nombre in siguientes %}<option value="{{ valor }}">{{ nombre }}</option>{% endfor %}</select>
+      </div>
+      <div class="campo">
+        <label for="nota">Nota</label>
+        <textarea id="nota" name="nota" rows="3" maxlength="300"></textarea>
+        <span class="ayuda">Para cerrar un incidente: preserva la evidencia y describe qué ocurrió y cómo se resolvió ({{ nota_minima }} caracteres como mínimo). No escribas datos personales.</span>
+      </div>
+      <div class="acciones"><button type="submit" class="btn btn-primario">Guardar</button></div>
+    </form>
+    {% endif %}
+  </section>
+
+  <aside class="lateral" style="display: flex; flex-direction: column; gap: 16px;">
+    {% if puede_ver_eventos %}
+    <form method="post" action="{% url 'auditoria:alerta_evidencia' alerta.pk %}" class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 8px;">
+      {% csrf_token %}
+      <h2>Preservar evidencia</h2>
+      <p class="muted small">Descarga los eventos relacionados con una huella SHA-256 que queda en la alerta. No borra nada.</p>
+      <button type="submit" class="btn">Descargar paquete</button>
+    </form>
+    {% endif %}
+    {% if puede_contener and acciones %}
+    <div class="tarjeta tarjeta-pad" style="display: flex; flex-direction: column; gap: 8px;">
+      <h2>Contención</h2>
+      <p class="muted small">Cortan el acceso de la cuenta sin destruir evidencia. Cada acción queda en la auditoría.</p>
+      {% for valor, nombre in acciones %}
+      <form method="post" action="{% url 'auditoria:alerta_contener' alerta.pk %}" style="margin: 0;">{% csrf_token %}<input type="hidden" name="accion" value="{{ valor }}"><button type="submit" class="btn" style="width: 100%;">{{ nombre }}</button></form>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </aside>
+</div>
+
+{% if eventos %}
+<section class="tarjeta" style="overflow: hidden;">
+  <div class="tarjeta-pad"><h2>Últimos eventos de la cuenta</h2></div>
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Fecha</th><th>Operación</th><th>Recurso</th><th>Resultado</th></tr></thead>
+      <tbody>{% for e in eventos %}<tr><td class="mono">{{ e.id }}</td><td class="mono">{{ e.fecha|date:"d-m-Y H:i:s" }}</td><td>{{ e.get_operacion_display }}</td><td class="mono">{{ e.recurso_tipo }}{% if e.recurso_ref %}: {{ e.recurso_ref }}{% endif %}</td><td>{{ e.get_resultado_display }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

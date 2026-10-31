@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.agenda.models import Cita
+from apps.consentimientos import servicio as consentimientos
 from apps.notificaciones import recordatorios
 from apps.notificaciones.models import EjecucionRecordatorios, Notificacion, PreferenciasNotificacion, Recordatorio, ReglaRecordatorio
 from apps.pacientes.models import Paciente
@@ -40,9 +41,16 @@ class RecepcionBase(TestCase):
             fecha_nacimiento='1985-03-12', email='maria@correo.cl', telefono='+56 9 1234 4821',
         )
         PreferenciasNotificacion.objects.create(paciente=cls.paciente, canal_correo=True, canal_sms=True)
+        consentimientos.otorgar(cls.paciente, consentimientos.RECORDATORIOS_CORREO, cls.usuario)
+        consentimientos.otorgar(cls.paciente, consentimientos.RECORDATORIOS_SMS, cls.usuario)
 
-    def cita(self, en_horas, creada_hace_horas=72, estado='AGENDADA', paciente=None, **extra):
-        inicio = timezone.now() + timedelta(hours=en_horas)
+    def cita_manana(self, hora, **kw):
+        """Cita mañana a una hora local fija: así varias citas caen siempre el mismo día, sin importar cuándo se ejecute la prueba."""
+        manana = timezone.localtime(timezone.now()).replace(hour=hora, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        return self.cita(0, inicio=manana, **kw)
+
+    def cita(self, en_horas, creada_hace_horas=72, estado='AGENDADA', paciente=None, inicio=None, **extra):
+        inicio = inicio or timezone.now() + timedelta(hours=en_horas)
         cita = Cita.objects.create(
             paciente=paciente or self.paciente, tipo='CONSULTA', profesional=self.profesional, sucursal=self.sede,
             modalidad='PRESENCIAL', inicio=inicio, fin=inicio + timedelta(minutes=30), estado=estado, **extra,
@@ -130,12 +138,13 @@ class EnvioTests(RecepcionBase):
             recordatorios.enviar_pendientes()
         self.assertEqual(Recordatorio.objects.get(canal='CORREO').error, 'Correo rebotado')
 
-    def test_sms_se_registra_en_el_log(self):
+    def test_sms_se_registra_en_el_log_sin_contenido_ni_telefono_completo(self):
         self.cita(20)
         recordatorios.generar()
         with self.assertLogs('apps.notificaciones.sms', level='INFO') as log:
             recordatorios.enviar_pendientes()
-        self.assertIn('Hola María', log.output[0])
+        self.assertIn('4821', log.output[0])
+        self.assertNotIn('María', log.output[0])
         self.assertNotIn('1234 4821', log.output[0])
 
     def test_ejecutar_registra_la_pasada(self):
@@ -166,9 +175,9 @@ class DashboardTests(RecepcionBase):
         self.assertRedirects(r, reverse('recepcion:dashboard'), fetch_redirect_response=False)
 
     def test_resumen_y_tabla_con_rut_oculto(self):
-        c1 = self.cita(5, estado='CONFIRMADA')
-        self.cita(6)
-        self.cita(7, estado='CANCELADA')
+        c1 = self.cita_manana(10, estado='CONFIRMADA')
+        self.cita_manana(11)
+        self.cita_manana(12, estado='CANCELADA')
         r = self.client.get(self.url(c1))
         self.assertEqual((r.context['total'], r.context['confirmadas'], r.context['por_confirmar'], r.context['porcentaje']), (3, 1, 1, 50))
         self.assertContains(r, '••.•••.331-K')
@@ -176,9 +185,9 @@ class DashboardTests(RecepcionBase):
         self.assertContains(r, 'María José Fuentes Soto')
 
     def test_filtros(self):
-        c1 = self.cita(5, estado='CONFIRMADA')
+        c1 = self.cita_manana(10, estado='CONFIRMADA')
         otra = Paciente.objects.create(rut='123456785', nombres='Pedro', apellidos='Soto', fecha_nacimiento='1980-01-01')
-        self.cita(6, paciente=otra)
+        self.cita_manana(11, paciente=otra)
         self.assertEqual(len(self.client.get(self.url(c1, estado='confirmada')).context['pagina']), 1)
         self.assertEqual(len(self.client.get(self.url(c1, q='pedro')).context['pagina']), 1)
         self.assertEqual(len(self.client.get(self.url(c1, q='12.345.678-5')).context['pagina']), 1)

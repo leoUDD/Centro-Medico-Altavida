@@ -1,0 +1,63 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Registro de auditoría{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Registro de auditoría</h1>
+    <p class="muted" style="font-size: 15px;">{{ total }} evento{{ total|pluralize }} · se conservan {{ meses }} meses · solo se agregan, nunca se editan ni se borran.</p>
+  </div>
+  <form method="post" action="{% url 'auditoria:verificar' %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn btn-primario">Verificar integridad</button></form>
+</div>
+
+<form method="get" role="search" class="tarjeta tarjeta-pad filtros">
+  <div class="campo">
+    <label for="operacion">Operación</label>
+    <select id="operacion" name="operacion">
+      <option value="">Todas</option>
+      {% for valor, nombre in operaciones %}<option value="{{ valor }}" {% if valor == filtros.operacion %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="resultado">Resultado</label>
+    <select id="resultado" name="resultado">
+      <option value="">Todos</option>
+      {% for valor, nombre in resultados %}<option value="{{ valor }}" {% if valor == filtros.resultado %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="campo"><label for="actor">Cuenta (id)</label><input id="actor" name="actor" inputmode="numeric" value="{{ filtros.actor }}"></div>
+  <div class="campo"><label for="recurso">Recurso (código)</label><input id="recurso" name="recurso" value="{{ filtros.recurso }}" placeholder="P… o id"></div>
+  <div class="campo"><label for="desde">Desde</label><input id="desde" name="desde" type="date" value="{{ filtros.desde }}"></div>
+  <div class="campo"><label for="hasta">Hasta</label><input id="hasta" name="hasta" type="date" value="{{ filtros.hasta }}"></div>
+  <button type="submit" class="btn btn-primario">Filtrar</button>
+</form>
+
+<section class="tarjeta" style="overflow: hidden;">
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Fecha</th><th>Operación</th><th>Cuenta</th><th>Recurso</th><th>Resultado</th><th>Detalle</th></tr></thead>
+      <tbody>
+      {% for e in pagina %}
+        <tr>
+          <td class="mono">{{ e.id }}</td>
+          <td class="mono" style="white-space: nowrap;">{{ e.fecha|date:"d-m-Y H:i:s" }}</td>
+          <td>{{ e.get_operacion_display }}</td>
+          <td class="mono">{% if e.actor_id %}{{ e.actor_id }} <span class="muted">({{ e.actor_rol|default:"—" }})</span>{% elif e.actor_ref %}anónimo <span class="muted">{{ e.actor_ref }}</span>{% else %}sistema{% endif %}</td>
+          <td class="mono">{% if e.recurso_tipo %}{{ e.recurso_tipo }}{% if e.recurso_ref %}: {{ e.recurso_ref }}{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if e.resultado == 'OK' %}<span class="estado valor-normal">OK</span>{% elif e.resultado == 'DENEGADO' %}<span class="estado valor-bajo">Denegado</span>{% else %}<span class="estado valor-alto">Fallido</span>{% endif %}</td>
+          <td class="mono muted" style="font-size: 12px;">{% for k, v in e.detalle.items %}{{ k }}={{ v }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">No hay eventos para estos filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="tarjeta-pad barra" style="border-top: 1px solid var(--border);">
+    <span class="muted" style="font-size: 14px;">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    <span style="display: flex; gap: 16px;">
+      {% if pagina.has_previous %}<a href="?{{ parametros }}&amp;pagina={{ pagina.previous_page_number }}" style="font-weight: 700;">← Anterior</a>{% endif %}
+      {% if pagina.has_next %}<a href="?{{ parametros }}&amp;pagina={{ pagina.next_page_number }}" style="font-weight: 700;">Siguiente →</a>{% endif %}
+    </span>
+  </div>
+</section>
+{% endblock %}

@@ -13,6 +13,7 @@ class SMSError(Exception):
 def enviar_sms(telefono, mensaje):
     backend = getattr(settings, 'SMS_BACKEND', 'console')
     if backend == 'console':
-        logger.info('SMS a %s: %s', telefono[-4:].rjust(len(telefono), '•'), mensaje)
+        # El texto lleva nombre, fecha y profesional: no se registra, solo el teléfono enmascarado y el largo.
+        logger.info('SMS a %s, largo del mensaje: %d', telefono[-4:].rjust(len(telefono), '•'), len(mensaje))
         return
     raise SMSError('Proveedor de SMS no configurado')

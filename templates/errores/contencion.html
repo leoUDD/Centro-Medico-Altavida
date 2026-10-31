@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Servicio limitado · Altavida</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family: system-ui, sans-serif; max-width: 480px; margin: 15vh auto; padding: 0 16px;">
+  <h1>Servicio limitado temporalmente</h1>
+  <p>{% if modo == 'BLOQUEADO' %}Estamos realizando una verificación de seguridad y el sistema no está disponible por ahora.{% else %}El sistema está en modo de solo lectura mientras realizamos una verificación de seguridad. Puedes consultar, pero no hacer cambios.{% endif %}</p>
+  <p>Vuelve a intentarlo en unos minutos. Si es urgente, llama al centro.</p>
+  <p><a href="/">Volver al inicio</a></p>
+</body>
+</html>

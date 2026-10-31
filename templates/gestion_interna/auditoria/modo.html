@@ -1,0 +1,26 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Contención del sistema{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Contención del sistema</h1>
+    <p class="muted" style="font-size: 15px;">Aísla el sistema mientras se investiga un incidente. El personal de seguridad siempre puede entrar para revertirlo.</p>
+  </div>
+</div>
+<form method="post" class="pila tarjeta tarjeta-lg" style="max-width: 640px;">
+  {% csrf_token %}
+  <p>Modo actual: <strong>{{ modo }}</strong></p>
+  <fieldset>
+    <legend style="font-size: 13px; line-height: 18px; margin-bottom: 8px;">Nuevo modo</legend>
+    {% for valor, nombre in modos %}
+    <label class="casilla"><input type="radio" name="modo" value="{{ valor }}" {% if valor == modo %}checked{% endif %}><span>{{ nombre }}</span></label>
+    {% endfor %}
+  </fieldset>
+  <div class="campo">
+    <label for="motivo">Motivo (código corto)</label>
+    <input id="motivo" name="motivo" maxlength="40" placeholder="p. ej. incidente-12">
+    <span class="ayuda">No escribas datos personales: solo un código que permita ubicar el caso.</span>
+  </div>
+  <div class="acciones"><button type="submit" class="btn btn-primario">Aplicar</button></div>
+</form>
+{% endblock %}

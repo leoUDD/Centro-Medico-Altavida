@@ -1,0 +1,39 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Solicitud {{ s.codigo }}{% endblock %}
+{% block contenido %}
+<div class="cabecera"><div><h1>Solicitud <span class="mono">{{ s.codigo }}</span></h1>
+<p class="muted" style="font-size: 15px;">{{ s.get_tipo_display }} · {{ s.get_estado_display }} · Plazo de respuesta: hasta el {{ s.plazo_hasta|date:"d-m-Y" }} (30 días desde tu solicitud)</p></div></div>
+
+{% if s.estado == Estado.EN_VERIFICACION %}
+<form method="post" action="{% url 'derechos:verificar' s.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 560px;">
+  {% csrf_token %}
+  <h2>Verifica que eres tú</h2>
+  <label>Tu contraseña <input type="password" name="clave" autocomplete="current-password" required></label>
+  {% if s.nivel_requerido >= 2 %}
+  <label>Código que te enviamos por correo <input name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+  {% endif %}
+  <div class="acciones"><button type="submit" class="btn btn-primario btn-grande">Verificar</button></div>
+</form>
+{% if s.nivel_requerido >= 2 %}
+<form method="post" action="{% url 'derechos:reenviar' s.codigo %}">{% csrf_token %}<button type="submit" class="btn">Enviar otro código</button></form>
+{% endif %}
+{% endif %}
+
+{% if s.estado == Estado.RESUELTA or s.estado == Estado.CERRADA %}
+<section class="tarjeta tarjeta-pad pila">
+  <h2>Respuesta: {{ s.get_resolucion_display }}</h2>
+  {% if s.fundamento %}<p><strong>Fundamento:</strong> {{ s.get_fundamento_display }}</p>{% endif %}
+  {% if s.respuesta %}<p>{{ s.respuesta }}</p>{% endif %}
+  {% if puede_descargar %}
+  <form method="post" action="{% url 'derechos:descargar' s.codigo %}">{% csrf_token %}<button type="submit" class="btn btn-primario">Descargar mis datos (JSON)</button></form>
+  <p class="muted small">Disponible hasta el {{ s.descarga_hasta|date:"d-m-Y H:i" }}. Descargas usadas: {{ s.descargas }}.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<h2 style="margin-top: 24px;">Seguimiento</h2>
+<table class="tabla">
+  <thead><tr><th>Fecha</th><th>Estado</th></tr></thead>
+  <tbody>{% for h in historial %}<tr><td>{{ h.fecha|date:"d-m-Y H:i" }}</td><td>{{ h.estado_nuevo }}</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

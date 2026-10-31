@@ -1,0 +1,53 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Alertas de seguridad{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Alertas de seguridad</h1>
+    <p class="muted" style="font-size: 15px;">{{ abiertas }} sin cerrar · sistema en modo <strong>{{ modo }}</strong>. Una alerta no es un incidente hasta que una persona lo confirma.</p>
+  </div>
+  <form method="post" action="{% url 'auditoria:detectar' %}" style="margin: 0;">{% csrf_token %}<button type="submit" class="btn btn-primario">Ejecutar detección ahora</button></form>
+</div>
+
+<form method="get" class="tarjeta tarjeta-pad filtros">
+  <div class="campo">
+    <label for="estado">Estado</label>
+    <select id="estado" name="estado">
+      <option value="">Todos</option>
+      <option value="abiertas" {% if estado == 'abiertas' %}selected{% endif %}>Sin cerrar</option>
+      {% for valor, nombre in estados %}<option value="{{ valor }}" {% if valor == estado %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="severidad">Severidad</label>
+    <select id="severidad" name="severidad">
+      <option value="">Todas</option>
+      {% for valor, nombre in severidades %}<option value="{{ valor }}" {% if valor == severidad %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primario">Filtrar</button>
+</form>
+
+<section class="tarjeta" style="overflow: hidden;">
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Fecha</th><th>Severidad</th><th>Regla</th><th>Resumen</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+      {% for a in alertas %}
+        <tr>
+          <td class="mono">{{ a.id }}</td>
+          <td class="mono" style="white-space: nowrap;">{{ a.fecha|date:"d-m-Y H:i" }}</td>
+          <td>{% if a.severidad == 'CRITICA' or a.severidad == 'ALTA' %}<span class="estado valor-alto">{{ a.get_severidad_display }}</span>{% elif a.severidad == 'MEDIA' %}<span class="estado valor-bajo">{{ a.get_severidad_display }}</span>{% else %}<span class="estado valor-normal">{{ a.get_severidad_display }}</span>{% endif %}</td>
+          <td class="mono" style="font-size: 13px;">{{ a.regla }}</td>
+          <td>{{ a.resumen }}</td>
+          <td>{{ a.get_estado_display }}</td>
+          <td><a href="{% url 'auditoria:alerta' a.pk %}" style="font-weight: 700;">Revisar</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">No hay alertas para estos filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

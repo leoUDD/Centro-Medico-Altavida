@@ -1,0 +1,33 @@
+{% extends "portal_paciente/base_paciente.html" %}
+{% block titulo %}Mis consentimientos{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Mis consentimientos</h1>
+    <p class="muted" style="font-size: 15px;">Tu atención médica no depende de estas autorizaciones. Cada una se da y se retira por separado. <a href="{% url 'consentimientos:aviso' %}">Aviso de privacidad</a></p>
+  </div>
+</div>
+
+{% if es_menor %}
+<p class="alerta-error" role="status">Eres menor de edad: estas autorizaciones las gestiona tu representante legal.</p>
+{% endif %}
+
+{% if es_menor %}{% include "consentimientos/_filas.html" with filas=filas destino=paciente puede=False %}{% else %}{% include "consentimientos/_filas.html" with filas=filas destino=paciente puede=True %}{% endif %}
+
+{% for r in representados %}
+<h2 style="margin-top: 24px;">Autorizaciones de {{ r.paciente.nombres }} (tu representado)</h2>
+{% include "consentimientos/_filas.html" with filas=r.filas destino=r.paciente puede=True %}
+{% endfor %}
+
+<h2 style="margin-top: 24px;">Historial</h2>
+<table class="tabla">
+  <thead><tr><th>Fecha</th><th>Finalidad</th><th>Acción</th><th>Versión del texto</th><th>Por</th></tr></thead>
+  <tbody>
+  {% for h in historial %}
+    <tr><td>{{ h.fecha|date:"d-m-Y H:i" }}</td><td>{{ h.finalidad.nombre }}</td><td>{{ h.get_accion_display }}</td><td>v{{ h.texto.version }}</td><td>{{ h.get_otorgante_display }}</td></tr>
+  {% empty %}
+    <tr><td colspan="5" class="muted">Aún no hay movimientos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

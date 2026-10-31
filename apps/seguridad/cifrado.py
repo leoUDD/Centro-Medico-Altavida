@@ -10,6 +10,7 @@ import os
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from django.conf import settings
+from django.views.decorators.debug import sensitive_variables
 
 from .llaves import llave_actual, llave_por_identificador
 
@@ -20,6 +21,7 @@ class LlaveDesconocida(Exception):
     """El dato fue cifrado con una llave que ya no está configurada."""
 
 
+@sensitive_variables()  # el texto y la llave no deben aparecer en las páginas de error
 def cifrar(texto, contexto, proposito='clinica'):
     kid, llave = llave_actual(proposito)
     nonce = os.urandom(TAMANO_NONCE)
@@ -27,6 +29,7 @@ def cifrar(texto, contexto, proposito='clinica'):
     return f'{kid}.' + base64.urlsafe_b64encode(nonce + cifrado).decode('ascii')
 
 
+@sensitive_variables()
 def _descifrar_formato_anterior(token, proposito):
     """Lee un dato cifrado antes del refuerzo (sin id de llave ni AAD) con la llave clínica de entonces.
 
@@ -43,6 +46,7 @@ def _descifrar_formato_anterior(token, proposito):
     return AESGCM(llave_actual('clinica')[1]).decrypt(nonce, cifrado, None).decode('utf-8')
 
 
+@sensitive_variables()
 def descifrar(token, contexto, proposito='clinica'):
     if '.' not in token:  # el formato actual siempre lleva "<id de llave>."; el base64 no usa el punto
         return _descifrar_formato_anterior(token, proposito)

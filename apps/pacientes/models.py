@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import models, transaction
 
 from apps.seguridad.campos import CampoCifrado
-from apps.seguridad.indice import indice_rut
+from apps.seguridad.indice import indice_correo, indice_rut
 from apps.seguridad.rut import formatear_rut
 
 CAMPOS_IDENTIDAD = (
@@ -55,9 +55,12 @@ class Paciente(models.Model):
     peso = CampoCifrado(blank=True)
     estatura = CampoCifrado(blank=True)
 
-    consentimiento_datos = models.BooleanField(default=False)
-    consentimiento_fecha = models.DateTimeField(null=True, blank=True)
-    recordatorios_activos = models.BooleanField(default=False)
+    # Toma de conocimiento del aviso de privacidad (versión y fecha). No es un consentimiento: la atención clínica se
+    # funda en la ley (Hito 1); los consentimientos, uno por finalidad, viven en apps/consentimientos.
+    aviso_privacidad_version = models.PositiveSmallIntegerField(null=True, blank=True)
+    aviso_privacidad_en = models.DateTimeField(null=True, blank=True)
+    # Supresión parcial: los datos que la ley obliga a conservar quedan bloqueados (sin uso distinto de la conservación).
+    datos_bloqueados_desde = models.DateTimeField(null=True, blank=True)
 
     creado = models.DateTimeField(auto_now_add=True)
 
@@ -105,6 +108,10 @@ class Paciente(models.Model):
                 raise AttributeError(campo)
             setattr(identidad, campo, valor)
         identidad.save()
+        if 'email' in campos and self.usuario_id:
+            # El correo de inicio de sesión es un índice ciego en la cuenta: debe seguir al correo cifrado.
+            self.usuario.correo_indice = indice_correo(campos['email']) if campos['email'] else None
+            self.usuario.save(update_fields=['correo_indice'])
 
 
 def _propiedad_identidad(campo):

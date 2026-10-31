@@ -53,10 +53,13 @@ class PreferenciasNotificacion(models.Model):
 
     @classmethod
     def para(cls, paciente):
-        """Preferencias del paciente; al crearlas respeta lo elegido en el registro (recordatorios por correo y SMS)."""
+        """Preferencias del paciente; al crearlas parte con los canales que el paciente consintió."""
+        from apps.consentimientos import servicio as consentimientos
+
         preferencias, _ = cls.objects.get_or_create(
             paciente=paciente,
-            defaults={'canal_correo': paciente.recordatorios_activos, 'canal_sms': paciente.recordatorios_activos},
+            defaults={'canal_correo': consentimientos.vigente(paciente, consentimientos.RECORDATORIOS_CORREO),
+                      'canal_sms': consentimientos.vigente(paciente, consentimientos.RECORDATORIOS_SMS)},
         )
         return preferencias
 
@@ -101,6 +104,7 @@ class Recordatorio(models.Model):
         PENDIENTE = 'PENDIENTE', 'Pendiente'
         ENVIADO = 'ENVIADO', 'Enviado'
         FALLIDO = 'FALLIDO', 'Fallido'
+        CANCELADO = 'CANCELADO', 'Cancelado: sin consentimiento vigente'
 
     cita = models.ForeignKey('agenda.Cita', on_delete=models.CASCADE, related_name='recordatorios')
     regla = models.ForeignKey(ReglaRecordatorio, on_delete=models.CASCADE, related_name='recordatorios')

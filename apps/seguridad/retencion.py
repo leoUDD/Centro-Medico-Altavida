@@ -12,6 +12,8 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.agenda.models import Cita
+from apps.auditoria import servicio as auditoria
+from apps.auditoria.models import Operacion
 from apps.notificaciones.models import EjecucionRecordatorios, Notificacion, Recordatorio
 
 
@@ -32,6 +34,8 @@ def purgar(ahora=None):
     ejecuciones = EjecucionRecordatorios.objects.filter(
         fecha__lt=ahora - _dias('RETENCION_EJECUCIONES_DIAS', 180),
     ).delete()[0]
-    return {
+    resultado = {
         'avisos': avisos, 'ordenes_externas': ordenes, 'recordatorios': recordatorios, 'ejecuciones': ejecuciones,
     }
+    auditoria.registrar(Operacion.RETENCION_APLICADA, 'sistema', '', detalle={'cantidad': sum(resultado.values())})
+    return resultado

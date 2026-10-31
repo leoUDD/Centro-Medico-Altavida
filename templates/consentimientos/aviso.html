@@ -1,0 +1,32 @@
+{% extends "base/base.html" %}
+{% block titulo %}Aviso de privacidad{% endblock %}
+{% block cuerpo %}
+<main class="contenido" style="max-width: 760px; margin: 0 auto; padding: 32px 16px; display: flex; flex-direction: column; gap: 16px;">
+  <h1>Aviso de privacidad</h1>
+  <p class="muted">Versión {{ version }}. Centro Médico Altavida.</p>
+
+  <section class="tarjeta tarjeta-pad pila">
+    <h2>Para qué usamos tus datos y con qué fundamento</h2>
+    <ul>
+      <li><strong>Tu atención médica</strong> (ficha clínica, citas, recetas, exámenes y sus resultados): la ley nos obliga a llevar tu ficha y a conservarla, y los necesitamos para prestarte el servicio. <strong>No depende de que nos des un permiso</strong> y, por lo mismo, no puedes retirarlo con un clic; si tienes dudas sobre estos datos, puedes ejercer tus derechos de acceso, rectificación o supresión.</li>
+      <li><strong>Gestión administrativa de tus citas</strong> (contacto, agenda): necesaria para cumplir el contrato de atención.</li>
+      <li><strong>Recordatorios de tus citas por correo o SMS</strong>: aquí sí te pedimos permiso, por separado para cada canal. Puedes darlo y retirarlo cuando quieras en <em>Mis consentimientos</em>, y tu atención no cambia.</li>
+    </ul>
+  </section>
+
+  <section class="tarjeta tarjeta-pad pila">
+    <h2>Lo que puedes autorizar</h2>
+    {% for f in finalidades %}
+    <p><strong>{{ f.nombre }}.</strong> Dato usado: {{ f.dato_usado }}. {{ f.descripcion }}</p>
+    {% endfor %}
+    <p class="muted small">Autorizar una finalidad no autoriza ninguna otra: cada una se da y se retira por separado.</p>
+  </section>
+
+  <section class="tarjeta tarjeta-pad pila">
+    <h2>Tus derechos y cuánto conservamos</h2>
+    <p>Puedes pedir acceso a tus datos, que los corrijamos o que los eliminemos desde tu cuenta. Algunos datos clínicos deben conservarse por mandato legal (la ficha, al menos 15 años); los de gestión administrativa se conservan 24 meses desde tu última atención.</p>
+    <p>Menores de edad: el consentimiento lo da su representante legal, verificado en persona en recepción.</p>
+  </section>
+  <p><a href="{% url 'inicio' %}">Volver al inicio</a></p>
+</main>
+{% endblock %}

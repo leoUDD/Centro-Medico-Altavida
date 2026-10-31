@@ -4,9 +4,17 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.auditoria import servicio
+from apps.auditoria.models import Operacion
+
 from .models import AccesoEmergencia, AccesoIdentidad, Paciente
 
 DURACION_EMERGENCIA = timedelta(hours=2)
+_OPERACION_POR_FINALIDAD = {
+    'Búsqueda de pacientes': Operacion.BUSQUEDA_PACIENTES,
+    'Agenda del día': Operacion.AGENDA_CONSULTA,
+    'Corrección de contacto': Operacion.CONTACTO_CORRECCION,
+}
 MOTIVO_MINIMO = 15  # caracteres: evita justificaciones vacías como "urgente"
 
 
@@ -46,3 +54,7 @@ def registrar_reidentificacion(usuario, finalidad, cantidad=1):
     """Deja constancia de que `usuario` vio datos identificadores de `cantidad` pacientes."""
     if cantidad:
         AccesoIdentidad.objects.create(usuario=usuario, finalidad=finalidad[:80], cantidad=cantidad)
+        servicio.registrar(
+            _OPERACION_POR_FINALIDAD.get(finalidad, Operacion.BUSQUEDA_PACIENTES), 'paciente', '',
+            detalle={'cantidad': cantidad, 'finalidad': finalidad}, actor=usuario,
+        )

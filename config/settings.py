@@ -30,10 +30,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 if not SECRET_KEY:
     raise ImproperlyConfigured('Falta DJANGO_SECRET_KEY en el entorno (.env).')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Seguro por defecto: DEBUG apagado. En desarrollo, definir DJANGO_DEBUG=1 en .env.
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
-ALLOWED_HOSTS = []
+# Lista separada por comas. En desarrollo (DEBUG=1) Django acepta localhost aunque esté vacía.
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
 
 
 # Application definition
@@ -58,7 +59,10 @@ INSTALLED_APPS = [
     'apps.recetas',
     'apps.laboratorio',
     'apps.notificaciones',
+    'apps.consentimientos',
+    'apps.derechos',
     'apps.integraciones',
+    'apps.auditoria',
 ]
 
 MIDDLEWARE = [
@@ -67,6 +71,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.auditoria.middleware.ContextoAuditoriaMiddleware',
+    'apps.auditoria.middleware.ModoSistemaMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -172,8 +178,10 @@ def _llave_obligatoria(nombre):
 CLAVE_CIFRADO = _llave_obligatoria('CLAVE_CIFRADO')
 CLAVE_IDENTIDAD = _llave_obligatoria('CLAVE_IDENTIDAD')
 CLAVE_INDICES = _llave_obligatoria('CLAVE_INDICES')
-if len({CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES}) != 3:
-    raise ImproperlyConfigured('CLAVE_CIFRADO, CLAVE_IDENTIDAD y CLAVE_INDICES deben ser distintas entre sí.')
+# Firma la cadena de hashes del registro de auditoría (apps/auditoria): sin ella no se puede falsificar un evento.
+CLAVE_AUDITORIA = _llave_obligatoria('CLAVE_AUDITORIA')
+if len({CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES, CLAVE_AUDITORIA}) != 4:
+    raise ImproperlyConfigured('CLAVE_CIFRADO, CLAVE_IDENTIDAD, CLAVE_INDICES y CLAVE_AUDITORIA deben ser distintas entre sí.')
 
 # Solo para migrar datos cifrados antes del refuerzo del cifrado (ver manage.py rotar_llaves).
 CIFRADO_FORMATO_ANTERIOR = os.environ.get('CIFRADO_FORMATO_ANTERIOR', '') == '1'
@@ -203,3 +211,55 @@ LOGOUT_REDIRECT_URL = 'login'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Centro Médico Altavida <no-responder@altavida.example>')
 # "console" solo registra el SMS en el log; un proveedor real se conecta en apps/notificaciones/sms.py.
 SMS_BACKEND = os.environ.get('SMS_BACKEND', 'console')
+
+
+# Sesiones, cookies y HTTPS
+# La sesión expira tras 30 minutos sin actividad (el personal maneja datos clínicos).
+SESSION_COOKIE_AGE = 30 * 60
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Con DJANGO_HTTPS=1 (producción detrás de TLS) las cookies viajan solo por HTTPS y se fuerza HTTPS con HSTS.
+HTTPS = os.environ.get('DJANGO_HTTPS', '0') == '1'
+if HTTPS:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Límite de intentos de inicio de sesión (ver apps/seguridad/intentos.py)
+LOGIN_MAX_INTENTOS = 5
+LOGIN_BLOQUEO_SEGUNDOS = 15 * 60
+
+# Registros: sin datos personales (el filtro enmascara RUT, correos y teléfonos, también en tracebacks).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {'sin_datos_personales': {'()': 'apps.seguridad.registros.RedactarDatosPersonales'}},
+    'handlers': {
+        'consola': {'class': 'logging.StreamHandler', 'filters': ['sin_datos_personales']},
+    },
+    'root': {'handlers': ['consola'], 'level': 'INFO'},
+    'loggers': {
+        'django.request': {'handlers': ['consola'], 'level': 'ERROR', 'propagate': False},
+        'django.server': {'handlers': ['consola'], 'level': 'INFO', 'propagate': False},
+    },
+}
+
+
+# Auditoría: meses que se conservan los eventos antes de poder eliminarse (el trigger de la base impide menos de 24).
+AUDITORIA_RETENCION_MESES = 24
+# Ejercicio de derechos: plazo de respuesta en días corridos (configurable; verificar contra la ley vigente) y
+# conservación de la ficha clínica (DS 41/2012 MINSAL).
+DERECHOS_PLAZO_DIAS = 30
+FICHA_CONSERVACION_ANIOS = 15
+DERECHOS_DESCARGA_DIAS = 7
+DERECHOS_DESCARGAS_MAX = 3

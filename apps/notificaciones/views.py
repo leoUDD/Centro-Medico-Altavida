@@ -3,11 +3,13 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from apps.consentimientos import servicio as consentimientos
 from apps.pacientes.views import paciente_de, solo_pacientes
 
 from .models import Notificacion, PreferenciasNotificacion
 
 FILTROS = {'': None, 'sin-leer': None, 'citas': Notificacion.Tipo.CITA, 'resultados': Notificacion.Tipo.RESULTADO}
+CANAL_A_FINALIDAD = {'canal_correo': consentimientos.RECORDATORIOS_CORREO, 'canal_sms': consentimientos.RECORDATORIOS_SMS}
 CAMPOS_PREFERENCIAS = ['canal_correo', 'canal_sms', 'recordar_48h', 'recordar_24h', 'recordar_2h']
 
 
@@ -44,9 +46,19 @@ def marcar_todas(request):
 @solo_pacientes
 @require_POST
 def guardar_preferencias(request):
-    preferencias = PreferenciasNotificacion.para(paciente_de(request))
+    paciente = paciente_de(request)
+    preferencias = PreferenciasNotificacion.para(paciente)
+    sin_permiso = []
     for campo in CAMPOS_PREFERENCIAS:
-        setattr(preferencias, campo, campo in request.POST)
+        elegido = campo in request.POST
+        finalidad = CANAL_A_FINALIDAD.get(campo)
+        if elegido and finalidad and not consentimientos.vigente(paciente, finalidad):
+            elegido = False
+            sin_permiso.append(campo)
+        setattr(preferencias, campo, elegido)
     preferencias.save()
-    messages.success(request, 'Preferencias guardadas.')
+    if sin_permiso:
+        messages.error(request, 'Para recibir recordatorios por ese canal primero debes autorizarlo en Mis consentimientos.')
+    else:
+        messages.success(request, 'Preferencias guardadas.')
     return redirect('notificaciones:lista')

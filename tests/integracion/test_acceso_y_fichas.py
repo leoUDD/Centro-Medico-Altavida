@@ -16,7 +16,7 @@ CLAVE = 'Clave-Muy-Segura-123'
 DATOS_REGISTRO = {
     'nombres': 'Ana', 'apellidos': 'Pérez Soto', 'rut': '12.345.678-5', 'fecha_nacimiento': '1990-05-01',
     'email': 'ana@correo.cl', 'telefono': '+56 9 1234 5678', 'clave': CLAVE, 'clave2': CLAVE,
-    'consentimiento_datos': 'on',
+    'aviso_privacidad': 'on',
 }
 
 
@@ -34,16 +34,17 @@ class RegistroYLoginTests(TestCase):
         self.assertEqual(usuario.correo_indice, indice_correo('ana@correo.cl'))
         self.assertEqual(usuario.paciente.email, 'ana@correo.cl')
         self.assertEqual(usuario.paciente.rut, '123456785')
-        self.assertTrue(usuario.paciente.consentimiento_datos)
+        self.assertEqual(usuario.paciente.aviso_privacidad_version, 1)
+        self.assertFalse(usuario.paciente.consentimientos.exists())  # el aviso no equivale a un consentimiento
 
     def test_registro_rechaza_rut_invalido_y_falta_de_consentimiento(self):
         datos = {**DATOS_REGISTRO, 'rut': '12.345.678-9'}
-        datos.pop('consentimiento_datos')
+        datos.pop('aviso_privacidad')
         r = self.client.post(reverse('registro'), datos)
         self.assertEqual(r.status_code, 200)
         self.assertFalse(Usuario.objects.exists())
         self.assertIn('rut', r.context['form'].errors)
-        self.assertIn('consentimiento_datos', r.context['form'].errors)
+        self.assertIn('aviso_privacidad', r.context['form'].errors)
 
     def test_registro_rechaza_clave_corta(self):
         r = self.client.post(reverse('registro'), {**DATOS_REGISTRO, 'clave': 'Corta-1', 'clave2': 'Corta-1'})

@@ -22,7 +22,7 @@
           {% include "base/_campo.html" with campo=form.rut mono=True ayuda="Validamos el dígito verificador." %}
           {% include "base/_campo.html" with campo=form.fecha_nacimiento %}
           {% include "base/_campo.html" with campo=form.email %}
-          {% include "base/_campo.html" with campo=form.telefono ayuda="Lo usamos para los recordatorios de tus citas." %}
+          {% include "base/_campo.html" with campo=form.telefono ayuda="Para contactarte. Los recordatorios solo si los autorizas abajo." %}
         </div>
       </fieldset>
       <fieldset>
@@ -34,13 +34,18 @@
       </fieldset>
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <label class="casilla">
-          <input type="checkbox" name="consentimiento_datos" {% if form.consentimiento_datos.value %}checked{% endif %}>
-          <span>Autorizo el tratamiento de mis datos personales y de salud para la atención médica, según la política de privacidad del centro.</span>
+          <input type="checkbox" name="aviso_privacidad" {% if form.aviso_privacidad.value %}checked{% endif %}>
+          <span>Leí el <a href="{% url 'consentimientos:aviso' %}" target="_blank" rel="noopener">aviso de privacidad</a>. Mi atención médica no depende de ningún otro permiso.</span>
         </label>
-        {% for e in form.consentimiento_datos.errors %}<span class="error" role="alert">{{ e }}</span>{% endfor %}
+        {% for e in form.aviso_privacidad.errors %}<span class="error" role="alert">{{ e }}</span>{% endfor %}
+        <p class="ayuda">Opcional, y puedes cambiarlo cuando quieras en Mis consentimientos:</p>
         <label class="casilla">
-          <input type="checkbox" name="recordatorios" {% if form.recordatorios.value %}checked{% endif %}>
-          <span>Quiero recibir recordatorios de citas por correo y SMS.</span>
+          <input type="checkbox" name="recordatorios_correo" {% if form.recordatorios_correo.value %}checked{% endif %}>
+          <span>Quiero recibir recordatorios de mis citas por correo electrónico.</span>
+        </label>
+        <label class="casilla">
+          <input type="checkbox" name="recordatorios_sms" {% if form.recordatorios_sms.value %}checked{% endif %}>
+          <span>Quiero recibir recordatorios de mis citas por SMS.</span>
         </label>
       </div>
       <div class="acciones">

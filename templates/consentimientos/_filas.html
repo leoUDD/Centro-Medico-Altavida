@@ -1,0 +1,16 @@
+{% for f in filas %}
+<article class="tarjeta tarjeta-pad pila" style="margin-bottom: 12px;">
+  <div class="barra" style="align-items: flex-start;">
+    <h3 style="font-size: 16px;">{{ f.finalidad.nombre }}</h3>
+    {% if f.vigente %}<span class="estado valor-normal">Autorizado</span>{% elif f.requiere_reconfirmar %}<span class="estado">Hay que reconfirmar</span>{% elif f.consentimiento %}<span class="estado">Retirado</span>{% else %}<span class="estado">Sin autorizar</span>{% endif %}
+  </div>
+  <p style="font-size: 15px;">{{ f.texto.texto }}</p>
+  <p class="muted small">Texto versión {{ f.texto.version }}.{% if f.consentimiento and f.vigente %} Autorizado el {{ f.consentimiento.otorgado_en|date:"d-m-Y H:i" }}.{% elif f.consentimiento.revocado_en %} Retirado el {{ f.consentimiento.revocado_en|date:"d-m-Y H:i" }}.{% endif %}</p>
+  {% if puede %}
+  <form method="post" action="{% if f.vigente %}{% url 'consentimientos:cambiar' f.finalidad.codigo 'revocar' %}{% else %}{% url 'consentimientos:cambiar' f.finalidad.codigo 'otorgar' %}{% endif %}" style="margin: 0;">
+    {% csrf_token %}<input type="hidden" name="paciente" value="{{ destino.codigo }}">
+    <button type="submit" class="btn {% if not f.vigente %}btn-primario{% endif %}">{% if f.vigente %}Retirar autorización{% else %}Autorizar{% endif %}</button>
+  </form>
+  {% endif %}
+</article>
+{% endfor %}

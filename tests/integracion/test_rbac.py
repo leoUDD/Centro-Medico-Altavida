@@ -74,7 +74,7 @@ class RolesYPermisosTests(RbacBase):
         self.medico.rol = 'ADMINISTRATIVO'
         self.medico.save()
         self.assertEqual(list(self.medico.groups.values_list('name', flat=True)), ['Personal administrativo'])
-        self.assertEqual(Group.objects.count(), 4)
+        self.assertEqual(Group.objects.count(), 5)
 
     def test_createsuperuser_crea_administrador_del_sistema(self):
         self.assertEqual(self.sistema.rol, Usuario.Rol.ADMIN_SISTEMA)

@@ -1,0 +1,25 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Consentimientos{% endblock %}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Consentimientos</h1>
+    <p class="muted" style="font-size: 15px;">Cifras y movimientos con códigos seudónimos: aquí no aparece quién es cada paciente.</p>
+  </div>
+</div>
+<table class="tabla">
+  <thead><tr><th>Finalidad</th><th>Otorgados</th><th>Revocados</th></tr></thead>
+  <tbody>{% for f in resumen %}<tr><td>{{ f.nombre }}</td><td>{{ f.otorgados }}</td><td>{{ f.revocados }}</td></tr>{% endfor %}</tbody>
+</table>
+<h2 style="margin-top: 24px;">Últimos movimientos</h2>
+<table class="tabla">
+  <thead><tr><th>Fecha</th><th>Paciente</th><th>Finalidad</th><th>Acción</th><th>Versión</th><th>Otorgante</th><th>Origen</th></tr></thead>
+  <tbody>
+  {% for m in movimientos %}
+    <tr><td>{{ m.fecha|date:"d-m-Y H:i" }}</td><td class="mono">{{ m.paciente.codigo }}</td><td>{{ m.finalidad.nombre }}</td><td>{{ m.get_accion_display }}</td><td>v{{ m.texto.version }}</td><td>{{ m.get_otorgante_display }}</td><td>{{ m.get_canal_display }}</td></tr>
+  {% empty %}
+    <tr><td colspan="7" class="muted">Sin movimientos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "gestion_interna/privacidad/base_privacidad.html" %}
+{% block titulo %}Incidentes{% endblock %}
+{% block contenido %}
+<div class="cabecera"><div><h1>Incidentes de seguridad</h1>
+<p class="muted" style="font-size: 15px;">Casos de respuesta: análisis, contención, notificaciones obligatorias y lecciones aprendidas.</p></div></div>
+<form method="post" action="{% url 'auditoria:incidente_abrir' %}" class="pila tarjeta tarjeta-lg" style="max-width: 640px;">
+  {% csrf_token %}
+  <h2>Abrir un caso</h2>
+  <label>Resumen (sin datos personales) <input name="resumen" maxlength="200" required></label>
+  <label>Severidad <select name="severidad">{% for v, n in severidades %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
+  <label>Número de alerta relacionada (opcional) <input name="alerta" inputmode="numeric"></label>
+  <div class="acciones"><button type="submit" class="btn btn-primario">Abrir caso</button></div>
+</form>
+<table class="tabla" style="margin-top: 24px;">
+  <thead><tr><th>Caso</th><th>Resumen</th><th>Clasificación</th><th>Fase</th><th>Conocido</th><th>Plazos</th></tr></thead>
+  <tbody>
+  {% for i in incidentes %}
+    <tr><td><a class="mono" href="{% url 'auditoria:incidente' i.codigo %}">{{ i.codigo }}</a></td><td>{{ i.resumen }}</td><td>{{ i.get_clasificacion_display }}</td><td>{{ i.get_fase_display }}</td><td>{{ i.conocido_en|date:"d-m-Y H:i" }}</td>
+      <td>{% if i.con_plazos_vencidos %}<strong>Vencidos</strong>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">No hay casos.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

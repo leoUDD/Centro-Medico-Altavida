@@ -1,6 +1,8 @@
 from django.apps import apps
 from django.core.management.base import BaseCommand
 
+from apps.auditoria import servicio as auditoria
+from apps.auditoria.models import Operacion, Resultado
 from apps.seguridad.campos import CampoCifrado
 from apps.seguridad.cifrado import identificador_de
 from apps.seguridad.llaves import llave_actual
@@ -35,6 +37,10 @@ class Command(BaseCommand):
                     continue
                 modelo._base_manager.filter(pk=pk).update(**nuevos)  # al guardar se cifra con la llave actual
                 reescritos += 1
+        auditoria.registrar(
+            Operacion.LLAVES_ROTADAS, 'sistema', '', Resultado.OK if not ilegibles else Resultado.FALLIDO,
+            detalle={'cantidad': reescritos},
+        )
         self.stdout.write(self.style.SUCCESS(f'{reescritos} registros reescritos con la llave actual.'))
         if ilegibles:
             self.stdout.write(self.style.WARNING(f'{ilegibles} registros no se pudieron leer y quedaron sin cambios.'))

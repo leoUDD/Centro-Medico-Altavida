@@ -1,10 +1,13 @@
 import hashlib
 import hmac
 
+from django.views.decorators.debug import sensitive_variables
+
 from .llaves import llave_de_indices
 from .rut import normalizar_rut
 
 
+@sensitive_variables()
 def indice_ciego(valor, dominio):
     """HMAC-SHA256 determinístico: permite buscar por igualdad sin guardar el dato en claro.
 
