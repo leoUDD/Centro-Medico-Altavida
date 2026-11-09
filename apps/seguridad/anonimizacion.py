@@ -11,6 +11,7 @@ Como el resultado no permite volver al paciente, deja de ser dato personal y pue
 from collections import Counter
 from datetime import date
 
+from apps.derechos.oposiciones import pacientes_opuestos
 from apps.fichas_clinicas.models import Diagnostico
 
 K_MINIMO = 5
@@ -43,7 +44,9 @@ def reporte_diagnosticos(k=K_MINIMO):
     """Casos por período, tramo de edad, sexo y categoría de diagnóstico, sin grupos de menos de k personas distintas."""
     casos = Counter()
     personas = {}
-    for d in Diagnostico.objects.select_related('paciente__identidad'):
+    # Quien se opuso al uso estadístico de sus diagnósticos no entra al conteo (ni siquiera como parte de un grupo).
+    excluidos = list(pacientes_opuestos('ESTADISTICAS'))
+    for d in Diagnostico.objects.exclude(paciente_id__in=excluidos).select_related('paciente__identidad'):
         fecha = d.fecha.date()
         clave = (
             f'{fecha:%Y-%m}', tramo_edad(_edad_en(d.paciente.fecha_nacimiento, fecha)),

@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.agenda import calendario
 from apps.agenda.models import Cita
 from apps.consentimientos import servicio as consentimientos
+from apps.derechos.oposiciones import hay_oposicion
 
 from .models import EjecucionRecordatorios, Notificacion, PreferenciasNotificacion, Recordatorio, ReglaRecordatorio
 from .sms import SMSError, enviar_sms
@@ -49,13 +50,14 @@ _FINALIDAD_POR_CANAL = {
 
 
 def _canales_permitidos(regla, preferencias):
-    """Un canal sale solo si la regla lo usa, el paciente lo prefiere y tiene consentimiento vigente para ese canal."""
+    """Un canal sale solo si la regla lo usa, el paciente lo prefiere, tiene consentimiento vigente y no lo bloqueó."""
     canales = []
     if regla.canal_correo and preferencias.canal_correo:
         canales.append(Recordatorio.Canal.CORREO)
     if regla.canal_sms and preferencias.canal_sms:
         canales.append(Recordatorio.Canal.SMS)
-    return [c for c in canales if consentimientos.vigente(preferencias.paciente, _FINALIDAD_POR_CANAL[c])]
+    return [c for c in canales if consentimientos.vigente(preferencias.paciente, _FINALIDAD_POR_CANAL[c])
+            and not hay_oposicion(preferencias.paciente, _FINALIDAD_POR_CANAL[c])]
 
 
 def generar(ahora=None):
@@ -129,8 +131,13 @@ def enviar_pendientes(recordatorios=None):
     recordatorios = recordatorios.select_related('cita__paciente', 'cita__profesional__usuario', 'cita__sucursal', 'regla')
     enviados = fallidos = 0
     for recordatorio in recordatorios:
-        # Se revisa otra vez al enviar: si el paciente revocó después de generarse, el aviso no sale.
-        if not consentimientos.vigente(recordatorio.cita.paciente, _FINALIDAD_POR_CANAL[recordatorio.canal]):
+        # Se revisa otra vez al enviar: si el paciente revocó o bloqueó el tratamiento después de generarse, el aviso no sale.
+        paciente, finalidad = recordatorio.cita.paciente, _FINALIDAD_POR_CANAL[recordatorio.canal]
+        if hay_oposicion(paciente, finalidad):
+            recordatorio.estado, recordatorio.error = Recordatorio.Estado.CANCELADO, 'Tratamiento bloqueado por el titular'
+            recordatorio.save(update_fields=['estado', 'error'])
+            continue
+        if not consentimientos.vigente(paciente, finalidad):
             recordatorio.estado, recordatorio.error = Recordatorio.Estado.CANCELADO, 'Sin consentimiento vigente'
             recordatorio.save(update_fields=['estado', 'error'])
             continue

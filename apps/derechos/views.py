@@ -12,7 +12,7 @@ from apps.pacientes.views import paciente_de, solo_pacientes
 from apps.usuarios.permisos import permiso_requerido
 
 from . import servicio
-from .models import SolicitudDerecho
+from .models import OposicionTratamiento, SolicitudDerecho
 
 gestionar_derechos = permiso_requerido('gestionar_derechos')
 Estado = SolicitudDerecho.Estado
@@ -29,6 +29,7 @@ def mis_solicitudes(request):
     return render(request, 'derechos/mis_solicitudes.html', {
         'seccion': 'derechos', 'solicitudes': SolicitudDerecho.objects.filter(solicitante=yo).select_related('paciente'),
         'bloqueado': yo.datos_bloqueados_desde,
+        'oposiciones': OposicionTratamiento.objects.filter(solicitud__solicitante=yo).select_related('paciente'),
     })
 
 
@@ -37,6 +38,7 @@ def nueva(request):
     yo = paciente_de(request)
     contexto = {
         'seccion': 'derechos', 'tipos': SolicitudDerecho.Tipo.choices, 'campos': SolicitudDerecho.Campo.choices,
+        'tratamientos': SolicitudDerecho.Tratamiento.choices,
         'representados': [r.menor for r in yo.representados.select_related('menor') if r.vigente],
     }
     if request.method == 'POST':
@@ -47,6 +49,7 @@ def nueva(request):
             solicitud = servicio.crear(
                 yo, titular, request.POST.get('tipo', ''), request.user,
                 campo=request.POST.get('campo', ''), valor=request.POST.get('valor', ''),
+                tratamiento=request.POST.get('tratamiento', ''),
             )
         except servicio.DerechosError as error:
             messages.error(request, str(error))
@@ -80,6 +83,22 @@ def verificar(request, codigo):
     else:
         messages.success(request, 'Identidad verificada. Tu solicitud pasó a evaluación.')
     return redirect('derechos:detalle', codigo=codigo)
+
+
+@solo_pacientes
+@require_POST
+@sensitive_post_parameters('clave')
+def levantar(request, pk):
+    """El titular vuelve a permitir un tratamiento que había bloqueado. Solo ve sus propios bloqueos."""
+    yo = paciente_de(request)
+    oposicion = get_object_or_404(OposicionTratamiento, pk=pk, solicitud__solicitante=yo)
+    try:
+        servicio.levantar_oposicion(oposicion, yo, request.user, request.user.check_password(request.POST.get('clave', '')))
+    except servicio.DerechosError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, 'Levantaste el bloqueo. Si el tratamiento requiere tu autorización, vuelve a darla en Mis autorizaciones.')
+    return redirect('derechos:mis')
 
 
 @solo_pacientes

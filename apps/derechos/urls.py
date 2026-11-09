@@ -8,6 +8,7 @@ urlpatterns = [
     # Titular (portal del paciente)
     path('paciente/derechos/', views.mis_solicitudes, name='mis'),
     path('paciente/derechos/nueva/', views.nueva, name='nueva'),
+    path('paciente/derechos/bloqueos/<int:pk>/levantar/', views.levantar, name='levantar'),
     path('paciente/derechos/<str:codigo>/', views.detalle, name='detalle'),
     path('paciente/derechos/<str:codigo>/verificar/', views.verificar, name='verificar'),
     path('paciente/derechos/<str:codigo>/reenviar-codigo/', views.reenviar_codigo, name='reenviar'),

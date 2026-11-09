@@ -19,12 +19,16 @@ from apps.notificaciones.models import Notificacion, PreferenciasNotificacion, R
 from apps.seguridad.indice import indice_ciego, indice_correo
 
 from . import validaciones
-from .models import HistorialSolicitud, SolicitudDerecho
+from .models import HistorialSolicitud, OposicionTratamiento, SolicitudDerecho
 
 Estado = SolicitudDerecho.Estado
 Tipo = SolicitudDerecho.Tipo
 Resolucion = SolicitudDerecho.Resolucion
 Fundamento = SolicitudDerecho.Fundamento
+Tratamiento = SolicitudDerecho.Tratamiento
+
+# Tratamientos oponibles que dependen de un consentimiento por canal: oponerse también revoca ese consentimiento.
+CANAL_DE_TRATAMIENTO = {Tratamiento.RECORDATORIOS_CORREO: 'CORREO', Tratamiento.RECORDATORIOS_SMS: 'SMS'}
 
 # Transiciones permitidas: cualquier otra se rechaza, aunque alguien fabrique la petición a mano.
 TRANSICIONES = {
@@ -76,7 +80,7 @@ def _validar_representacion(solicitante, paciente):
 
 
 @transaction.atomic
-def crear(solicitante, paciente, tipo, usuario, campo='', valor=''):
+def crear(solicitante, paciente, tipo, usuario, campo='', valor='', tratamiento=''):
     if tipo not in Tipo.values:
         raise DerechosError('Tipo de solicitud desconocido.')
     _validar_representacion(solicitante, paciente)
@@ -93,19 +97,31 @@ def crear(solicitante, paciente, tipo, usuario, campo='', valor=''):
             raise DerechosError(str(error))
     else:
         campo, valor = '', ''
-    nivel = 1 if (tipo == Tipo.RECTIFICACION and campo not in SolicitudDerecho.CAMPOS_SENSIBLES
-                  and campo != SolicitudDerecho.Campo.CLINICO) else 2
+    if tipo == Tipo.OPOSICION:
+        if tratamiento not in Tratamiento.values:
+            raise DerechosError('Indica a qué tratamiento te quieres oponer.')
+        if OposicionTratamiento.objects.filter(paciente=paciente, tratamiento=tratamiento, levantada_en__isnull=True).exists():
+            raise DerechosError('Ese tratamiento ya está bloqueado.')
+    else:
+        tratamiento = ''
+    # Verificación proporcional al riesgo: rectificar un dato de contacto u oponerse a un uso que se puede volver a
+    # autorizar (el titular lo levanta cuando quiera) pide la contraseña; el resto, además un código al correo.
+    nivel = 1 if tipo == Tipo.OPOSICION or (
+        tipo == Tipo.RECTIFICACION and campo not in SolicitudDerecho.CAMPOS_SENSIBLES
+        and campo != SolicitudDerecho.Campo.CLINICO) else 2
     ahora = timezone.now()
     try:
         solicitud = SolicitudDerecho.objects.create(
             paciente=paciente, solicitante=solicitante, tipo=tipo, campo=campo, valor_propuesto=valor.strip(),
+            tratamiento=tratamiento,
             recibida_en=ahora, plazo_hasta=(ahora + timedelta(days=settings.DERECHOS_PLAZO_DIAS)).date(),
             nivel_requerido=nivel,
         )
     except IntegrityError:
         raise DerechosError('Ya tienes una solicitud de este tipo en curso.')
     HistorialSolicitud.objects.create(solicitud=solicitud, estado_nuevo=Estado.RECIBIDA, actor_id=getattr(usuario, 'pk', None))
-    _auditar(Operacion.DERECHO_SOLICITUD, solicitud, usuario, campo=campo, estado_nuevo=Estado.RECIBIDA)
+    _auditar(Operacion.DERECHO_SOLICITUD, solicitud, usuario, campo=campo, tratamiento=tratamiento,
+             estado_nuevo=Estado.RECIBIDA)
     _transicion(solicitud, Estado.EN_VERIFICACION, usuario)
     if nivel == 2:
         enviar_codigo(solicitud, usuario)
@@ -195,8 +211,13 @@ def conservar_hasta(paciente):
 
 
 def _suprimir(paciente, ejecutor):
-    """Elimina lo que no hay obligación de conservar y bloquea el resto. Devuelve (hubo_datos_que_se_conservan, cantidad)."""
-    cantidad = 0
+    """Elimina lo que no hay obligación de conservar y bloquea el resto.
+
+    Devuelve (hubo_datos_que_se_conservan, cantidad_total, informe). El informe dice, en lenguaje para el titular,
+    qué se eliminó, qué quedó bloqueado por obligación legal y cómo se propagó la supresión.
+    """
+    eliminado, propagacion = [], []
+    revocados = 0
     for consentimiento in Consentimiento.objects.filter(paciente=paciente, estado=Consentimiento.Estado.OTORGADO).select_related('finalidad', 'texto'):
         consentimiento.estado, consentimiento.revocado_en = Consentimiento.Estado.REVOCADO, timezone.now()
         consentimiento.save()
@@ -205,12 +226,19 @@ def _suprimir(paciente, ejecutor):
             otorgante=consentimiento.otorgante, representacion=consentimiento.representacion, canal='DERECHOS',
             registrado_por=getattr(ejecutor, 'pk', None),
         )
-        cantidad += 1
-    cantidad += Notificacion.objects.filter(paciente=paciente).delete()[0]
-    cantidad += Recordatorio.objects.filter(cita__paciente=paciente).delete()[0]
-    cantidad += PreferenciasNotificacion.objects.filter(paciente=paciente).delete()[0]
-    Cita.objects.filter(paciente=paciente).exclude(orden_externa='').update(
+        revocados += 1
+    avisos = Notificacion.objects.filter(paciente=paciente).delete()[0]
+    recordatorios = Recordatorio.objects.filter(cita__paciente=paciente).delete()[0]
+    preferencias = PreferenciasNotificacion.objects.filter(paciente=paciente).delete()[0]
+    ordenes = Cita.objects.filter(paciente=paciente).exclude(orden_externa='').update(
         orden_externa='', orden_externa_nombre='', orden_externa_tipo='')
+    for cantidad_parcial, texto in ((revocados, 'autorizaciones de uso de tus datos (quedan revocadas en el historial)'),
+                                    (avisos, 'avisos de tu cuenta'), (recordatorios, 'recordatorios de citas'),
+                                    (preferencias, 'preferencias de notificación'),
+                                    (ordenes, 'órdenes médicas externas adjuntas a tus citas')):
+        if cantidad_parcial:
+            eliminado.append(f'{cantidad_parcial} {texto}')
+    cantidad = revocados + avisos + recordatorios + preferencias + ordenes
     cuenta = paciente.usuario
     if cuenta is not None:
         contencion.revocar_sesiones(cuenta, ejecutor)
@@ -219,13 +247,36 @@ def _suprimir(paciente, ejecutor):
         cuenta.rut_indice = cuenta.correo_indice = None
         cuenta.save()
         cantidad += 1
+        eliminado.append('tu cuenta del portal (contraseña y datos de acceso)')
+        propagacion.append('Sesiones abiertas: cerradas en el momento. El inicio de sesión ya no reconoce tu RUT ni tu correo.')
     conserva = tiene_datos_clinicos(paciente)
+    bloqueado = []
     if not conserva:
         # Sin ficha ni atenciones no hay nada que conservar: se elimina también el diccionario de identidad.
         cantidad += paciente.identidad.delete()[0] if hasattr(paciente, 'identidad') else 0
+        eliminado.append('tu identidad (RUT, nombre, contacto): ya no se puede saber quién eras')
+    else:
+        bloqueado.append('tu ficha clínica (historial médico, diagnósticos, recetas, resultados y citas), por la obligación '
+                         'legal de conservarla; solo se usa para esa conservación y para tu atención')
+        bloqueado.append('tu identidad, que permanece cifrada para poder asociar la ficha contigo')
     paciente.datos_bloqueados_desde = timezone.now()
     paciente.save(update_fields=['datos_bloqueados_desde'])
-    return conserva, cantidad
+    propagacion.append('Procesos automáticos: el generador y el enviador de recordatorios consultan el consentimiento antes de '
+                       'cada envío, así que nada que dependa de lo eliminado vuelve a salir.')
+    propagacion.append('Nuevas autorizaciones y nuevas solicitudes por este medio quedan bloqueadas para tu persona.')
+    propagacion.append('Respaldos de la base de datos fuera de la aplicación: esta supresión no los modifica; se rigen por la '
+                       'política de respaldos del centro.')
+    return conserva, cantidad, {'eliminado': eliminado, 'bloqueado': bloqueado, 'propagacion': propagacion}
+
+
+def _texto_informe(informe):
+    """Convierte el informe de supresión en el texto que lee el titular."""
+    partes = []
+    for titulo, clave in (('Se eliminó', 'eliminado'), ('Se bloqueó por obligación legal', 'bloqueado'),
+                          ('Cómo se propagó', 'propagacion')):
+        if informe[clave]:
+            partes.append(titulo + ':\n' + '\n'.join(f'- {linea}' for linea in informe[clave]))
+    return '\n\n'.join(partes)
 
 
 def _rectificar(solicitud, ejecutor):
@@ -241,6 +292,66 @@ def _rectificar(solicitud, ejecutor):
     paciente.actualizar_identidad(**{campo: valor})
     auditoria.registrar(Operacion.RECTIFICACION, 'paciente', paciente.codigo, actor=ejecutor,
                         detalle={'campo': campo, 'codigo_solicitud': solicitud.codigo})
+
+
+def _oponer(solicitud, ejecutor):
+    """Bloquea el tratamiento y propaga el bloqueo. Devuelve cuántos recordatorios pendientes se cancelaron."""
+    paciente, tratamiento = solicitud.paciente, solicitud.tratamiento
+    if tratamiento not in Tratamiento.values:
+        raise DerechosError('Tratamiento desconocido.')
+    try:
+        with transaction.atomic():  # punto de guardado: un choque con la restricción no debe romper la resolución entera
+            OposicionTratamiento.objects.create(paciente=paciente, tratamiento=tratamiento, solicitud=solicitud)
+    except IntegrityError:
+        raise DerechosError('Ese tratamiento ya está bloqueado para esta persona.')
+    cancelados = 0
+    canal = CANAL_DE_TRATAMIENTO.get(tratamiento)
+    if canal:
+        # Propagación 1: el consentimiento del canal se revoca (queda en el historial, con canal OPOSICION).
+        consentimiento = Consentimiento.objects.filter(
+            paciente=paciente, finalidad__codigo=tratamiento, estado=Consentimiento.Estado.OTORGADO,
+        ).select_related('finalidad', 'texto').first()
+        if consentimiento is not None:
+            consentimiento.estado, consentimiento.revocado_en = Consentimiento.Estado.REVOCADO, timezone.now()
+            consentimiento.save()
+            paciente.registros_consentimiento.create(
+                finalidad=consentimiento.finalidad, texto=consentimiento.texto, accion='REVOCADO',
+                otorgante=consentimiento.otorgante, representacion=consentimiento.representacion, canal='OPOSICION',
+                registrado_por=getattr(ejecutor, 'pk', None),
+            )
+        # Propagación 2: lo ya programado por ese canal no sale.
+        cancelados = Recordatorio.objects.filter(
+            cita__paciente=paciente, canal=canal, estado=Recordatorio.Estado.PENDIENTE,
+        ).update(estado=Recordatorio.Estado.CANCELADO, error='Tratamiento bloqueado por el titular')
+    # Propagación 3, para todos los tratamientos: los procesos preguntan `oposiciones.hay_oposicion` antes de usar el dato
+    # (recordatorios al generar y al enviar; el reporte estadístico al contar), y el consentimiento no se puede volver a
+    # otorgar mientras el bloqueo siga vigente.
+    auditoria.registrar(Operacion.OPOSICION, 'paciente', paciente.codigo, actor=ejecutor, detalle={
+        'codigo_solicitud': solicitud.codigo, 'tratamiento': tratamiento, 'estado_nuevo': 'VIGENTE',
+        'cantidad': cancelados})
+    return cancelados
+
+
+@sensitive_variables()
+def levantar_oposicion(oposicion, solicitante, usuario, clave_correcta):
+    """El titular (o su representante) vuelve a permitir el tratamiento. Pide la contraseña en esa misma petición.
+
+    Levantar el bloqueo no reactiva nada por sí solo: si el tratamiento dependía de un consentimiento, hay que
+    otorgarlo de nuevo en Mis autorizaciones.
+    """
+    solicitud = oposicion.solicitud
+    if not clave_correcta:
+        _auditar(Operacion.OPOSICION, solicitud, usuario, Resultado.DENEGADO, tratamiento=oposicion.tratamiento, metodo='clave')
+        raise DerechosError('La contraseña no es correcta.')
+    _validar_representacion(solicitante, oposicion.paciente)
+    with transaction.atomic():
+        oposicion = OposicionTratamiento.objects.select_for_update().get(pk=oposicion.pk)
+        if not oposicion.vigente:
+            raise DerechosError('Ese bloqueo ya fue levantado.')
+        oposicion.levantada_en, oposicion.levantada_por = timezone.now(), getattr(usuario, 'pk', None)
+        oposicion.save(update_fields=['levantada_en', 'levantada_por'])
+        _auditar(Operacion.OPOSICION, solicitud, usuario, tratamiento=oposicion.tratamiento, estado_nuevo='LEVANTADA')
+    return oposicion
 
 
 @transaction.atomic
@@ -265,15 +376,22 @@ def resolver(solicitud, ejecutor, resolucion, fundamento='', respuesta=''):
                 _rectificar(solicitud, ejecutor)
             elif resolucion == Resolucion.EJECUTADA:
                 raise DerechosError('Un dato clínico no se modifica: resuélvelo como parcial (anotación aclaratoria) o rechazado.')
+        elif tipo == Tipo.OPOSICION:
+            cancelados = _oponer(solicitud, ejecutor)
+            respuesta = (respuesta + ' ' if respuesta else '') + (
+                f'Bloqueamos este tratamiento: {solicitud.get_tratamiento_display().lower()}. Dejamos de usarlo desde hoy'
+                + (f' y cancelamos {cancelados} recordatorio(s) que estaban programados' if cancelados else '')
+                + '. Puedes levantar el bloqueo cuando quieras desde Mis derechos.')
         elif tipo == Tipo.SUPRESION:
-            conserva, cantidad = _suprimir(paciente, ejecutor)
+            conserva, cantidad, informe = _suprimir(paciente, ejecutor)
             extra['cantidad'] = cantidad
             if conserva:
                 resolucion, fundamento = Resolucion.PARCIAL, Fundamento.CONSERVACION_LEGAL
                 hasta = conservar_hasta(paciente)
                 respuesta = (respuesta + ' ' if respuesta else '') + (
-                    f'Eliminamos tu cuenta, tus recordatorios y tus autorizaciones. Tu ficha clínica debe conservarse por ley '
-                    f'hasta el {hasta:%d-%m-%Y} y queda bloqueada: solo se usa para esa conservación y para tu atención.')
+                    f'Tu ficha clínica debe conservarse por ley hasta el {hasta:%d-%m-%Y} y queda bloqueada: solo se usa '
+                    f'para esa conservación y para tu atención.')
+            respuesta = (respuesta + '\n\n' if respuesta else '') + _texto_informe(informe)
             auditoria.registrar(Operacion.SUPRESION, 'paciente', paciente.codigo, actor=ejecutor,
                                 detalle={'codigo_solicitud': solicitud.codigo, 'estado_nuevo': 'PARCIAL' if conserva else 'TOTAL', **extra})
     solicitud.resolucion, solicitud.fundamento = resolucion, fundamento
@@ -337,6 +455,9 @@ def armar_exportacion(paciente, con_informacion=False):
         'consentimientos': [
             {'finalidad': r.finalidad.codigo, 'accion': r.accion, 'fecha': _t(r.fecha), 'version_texto': r.texto.version}
             for r in paciente.registros_consentimiento.select_related('finalidad', 'texto')],
+        'oposiciones_al_tratamiento': [
+            {'tratamiento': o.tratamiento, 'desde': _t(o.desde), 'levantada_en': _t(o.levantada_en)}
+            for o in paciente.oposiciones.all()],
         'solicitudes_de_derechos': [
             {'codigo': s.codigo, 'tipo': s.tipo, 'estado': s.estado, 'recibida_en': _t(s.recibida_en)}
             for s in paciente.solicitudes_derechos.all()],
@@ -349,7 +470,7 @@ def armar_exportacion(paciente, con_informacion=False):
             'conservacion': f'Ficha clínica: al menos {settings.FICHA_CONSERVACION_ANIOS} años desde la última atención. '
                             'Datos de gestión: 24 meses desde la última atención.',
             'destinatarios': 'No se ceden a terceros salvo obligación legal.',
-            'derechos': ['acceso', 'rectificación', 'supresión', 'portabilidad'],
+            'derechos': ['acceso', 'rectificación', 'supresión', 'portabilidad', 'oposición y bloqueo de un tratamiento'],
         }
     return datos
 

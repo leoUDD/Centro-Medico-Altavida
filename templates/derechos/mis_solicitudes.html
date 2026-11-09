@@ -4,7 +4,7 @@
 <div class="cabecera">
   <div>
     <h1>Mis derechos sobre mis datos</h1>
-    <p class="muted" style="font-size: 15px;">Puedes pedir una copia de tus datos, corregirlos o solicitar su eliminación. Respondemos dentro del plazo legal y verificamos tu identidad antes de entregar o cambiar nada.</p>
+    <p class="muted" style="font-size: 15px;">Puedes pedir una copia de tus datos, corregirlos, solicitar su eliminación u oponerte a un tratamiento. Respondemos dentro del plazo legal y verificamos tu identidad antes de entregar o cambiar nada.</p>
   </div>
   {% if not bloqueado %}<a class="btn btn-primario" href="{% url 'derechos:nueva' %}">Nueva solicitud</a>{% endif %}
 </div>
@@ -19,4 +19,21 @@
   {% endfor %}
   </tbody>
 </table>
+{% if oposiciones %}
+<h2 style="margin-top: 24px;">Tratamientos que bloqueaste</h2>
+<table class="tabla">
+  <thead><tr><th>Tratamiento</th><th>Bloqueado desde</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for o in oposiciones %}
+    <tr><td>{{ o.get_tratamiento_display }}</td><td>{{ o.desde|date:"d-m-Y" }}</td>
+    <td>{% if o.vigente %}Bloqueado{% else %}Levantado el {{ o.levantada_en|date:"d-m-Y" }}{% endif %}</td>
+    <td>{% if o.vigente %}
+      <form method="post" action="{% url 'derechos:levantar' o.pk %}" style="display: flex; gap: 8px;">{% csrf_token %}
+        <input type="password" name="clave" autocomplete="current-password" placeholder="Tu contraseña" aria-label="Tu contraseña" required>
+        <button type="submit" class="btn">Levantar bloqueo</button>
+      </form>{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
 {% endblock %}

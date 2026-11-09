@@ -85,6 +85,11 @@ def cambiar(paciente, codigo, otorgar, usuario, actor_paciente=None, canal=Regis
     if paciente.datos_bloqueados_desde:
         raise ConsentimientoError('Los datos de esta persona están bloqueados por una solicitud de supresión.')
     otorgante, representacion = _quien_decide(paciente, actor_paciente)
+    if otorgar:
+        from apps.derechos.oposiciones import hay_oposicion  # import tardío: derechos importa este módulo
+        if hay_oposicion(paciente, codigo):
+            raise ConsentimientoError(
+                'Pediste bloquear este tratamiento. Para volver a autorizarlo, primero levanta el bloqueo en Mis derechos.')
     texto = texto_vigente(finalidad)
     actual = Consentimiento.objects.filter(paciente=paciente, finalidad=finalidad).first()
     ahora = timezone.now()

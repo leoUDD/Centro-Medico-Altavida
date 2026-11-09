@@ -4,6 +4,8 @@
 <div class="cabecera"><div><h1>Solicitud <span class="mono">{{ s.codigo }}</span></h1>
 <p class="muted" style="font-size: 15px;">{{ s.get_tipo_display }} · {{ s.get_estado_display }} · Plazo de respuesta: hasta el {{ s.plazo_hasta|date:"d-m-Y" }} (30 días desde tu solicitud)</p></div></div>
 
+{% if s.tratamiento %}<p><strong>Tratamiento:</strong> {{ s.get_tratamiento_display }}</p>{% endif %}
+
 {% if s.estado == Estado.EN_VERIFICACION %}
 <form method="post" action="{% url 'derechos:verificar' s.codigo %}" class="pila tarjeta tarjeta-lg" style="max-width: 560px;">
   {% csrf_token %}
@@ -23,7 +25,7 @@
 <section class="tarjeta tarjeta-pad pila">
   <h2>Respuesta: {{ s.get_resolucion_display }}</h2>
   {% if s.fundamento %}<p><strong>Fundamento:</strong> {{ s.get_fundamento_display }}</p>{% endif %}
-  {% if s.respuesta %}<p>{{ s.respuesta }}</p>{% endif %}
+  {% if s.respuesta %}<p>{{ s.respuesta|linebreaksbr }}</p>{% endif %}
   {% if puede_descargar %}
   <form method="post" action="{% url 'derechos:descargar' s.codigo %}">{% csrf_token %}<button type="submit" class="btn btn-primario">Descargar mis datos (JSON)</button></form>
   <p class="muted small">Disponible hasta el {{ s.descarga_hasta|date:"d-m-Y H:i" }}. Descargas usadas: {{ s.descargas }}.</p>

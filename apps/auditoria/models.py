@@ -44,6 +44,7 @@ class Operacion(models.TextChoices):
     EXPORTACION_DATOS = 'EXPORTACION_DATOS', 'Exportación de datos personales'
     RECTIFICACION = 'RECTIFICACION', 'Rectificación de datos'
     SUPRESION = 'SUPRESION', 'Supresión o bloqueo de datos'
+    OPOSICION = 'OPOSICION', 'Oposición o bloqueo de un tratamiento'
     # Controles y administración del sistema
     ACCESO_DENEGADO = 'ACCESO_DENEGADO', 'Acceso denegado por falta de permisos'
     ALERTA_GENERADA = 'ALERTA_GENERADA', 'Alerta de seguridad generada'

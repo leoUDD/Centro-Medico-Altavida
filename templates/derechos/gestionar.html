@@ -7,6 +7,7 @@
 <section class="tarjeta tarjeta-pad pila">
   <p><strong>Identidad:</strong> {% if s.verificada_en %}verificada el {{ s.verificada_en|date:"d-m-Y H:i" }} (nivel {{ s.nivel_requerido }}){% else %}pendiente (nivel requerido {{ s.nivel_requerido }}){% endif %}</p>
   {% if s.tipo == 'RECTIFICACION' %}<p><strong>Dato a corregir:</strong> {{ s.get_campo_display }}. El valor propuesto no se muestra: el sistema lo aplica si acoges la solicitud.</p>{% endif %}
+  {% if s.tipo == 'OPOSICION' %}<p><strong>Tratamiento a bloquear:</strong> {{ s.get_tratamiento_display }}. Al acoger, el sistema lo bloquea, revoca el consentimiento del canal si corresponde y cancela lo programado. La atención clínica no se ve afectada.</p>{% endif %}
   {% if s.tipo == 'SUPRESION' %}<p><strong>Datos clínicos que la ley obliga a conservar:</strong> {% if conserva %}sí; la supresión será parcial (bloqueo de la ficha){% else %}no hay{% endif %}.</p>{% endif %}
 </section>
 

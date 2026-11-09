@@ -18,6 +18,10 @@
     <label>Valor correcto (o qué está equivocado, si es un dato clínico) <input name="valor" maxlength="200"></label>
     <span class="ayuda">Formatos: correo (nombre@dominio.cl), teléfono con 8 a 15 dígitos (+56912345678), fecha como AAAA-MM-DD o DD/MM/AAAA, nombres solo con letras.</span>
   </fieldset>
+  <fieldset><legend>Solo si quieres oponerte o bloquear un tratamiento</legend>
+    <label>Tratamiento <select name="tratamiento"><option value="">—</option>{% for v, n in tratamientos %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select></label>
+    <span class="ayuda">Dejamos de usar tus datos para eso, sin afectar tu atención médica. Puedes levantar el bloqueo cuando quieras.</span>
+  </fieldset>
   <div class="acciones">
     <a href="{% url 'derechos:mis' %}" class="btn btn-grande">Cancelar</a>
     <button type="submit" class="btn btn-primario btn-grande">Enviar solicitud</button>

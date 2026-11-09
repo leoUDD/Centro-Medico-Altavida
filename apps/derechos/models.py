@@ -23,6 +23,7 @@ class SolicitudDerecho(models.Model):
         PORTABILIDAD = 'PORTABILIDAD', 'Portabilidad (copia en formato estructurado)'
         RECTIFICACION = 'RECTIFICACION', 'Rectificación de un dato'
         SUPRESION = 'SUPRESION', 'Supresión de mis datos'
+        OPOSICION = 'OPOSICION', 'Oposición o bloqueo de un tratamiento'
 
     class Estado(models.TextChoices):
         RECIBIDA = 'RECIBIDA', 'Recibida'
@@ -54,6 +55,16 @@ class SolicitudDerecho(models.Model):
         FECHA_NACIMIENTO = 'fecha_nacimiento', 'Fecha de nacimiento'
         CLINICO = 'clinico', 'Un dato de mi ficha clínica'
 
+    class Tratamiento(models.TextChoices):
+        """Tratamientos a los que el titular puede oponerse sin perder su atención clínica.
+
+        La atención, la ficha, las recetas, los resultados y la agenda no están aquí: se fundan en una obligación legal o
+        en el contrato (hito 1) y una oposición a ellos se rechaza con fundamento.
+        """
+        RECORDATORIOS_CORREO = 'RECORDATORIOS_CORREO', 'Recordatorios de citas por correo'
+        RECORDATORIOS_SMS = 'RECORDATORIOS_SMS', 'Recordatorios de citas por SMS'
+        ESTADISTICAS = 'ESTADISTICAS', 'Uso de mis diagnósticos en estadísticas anonimizadas'
+
     # Campos que cambian la identidad de la persona: exigen verificación reforzada.
     CAMPOS_SENSIBLES = ('nombres', 'apellidos', 'fecha_nacimiento')
 
@@ -68,6 +79,7 @@ class SolicitudDerecho(models.Model):
     verificada_en = models.DateTimeField(null=True, blank=True)
     campo = models.CharField(max_length=20, choices=Campo.choices, blank=True)
     valor_propuesto = CampoCifrado(blank=True)
+    tratamiento = models.CharField(max_length=25, choices=Tratamiento.choices, blank=True)  # solo en oposiciones
     # Código de un solo uso: solo se guarda su huella, vence rápido y tiene intentos limitados.
     codigo_huella = models.CharField(max_length=64, blank=True, editable=False)
     codigo_expira = models.DateTimeField(null=True, blank=True)
@@ -85,9 +97,11 @@ class SolicitudDerecho(models.Model):
     class Meta:
         ordering = ['-recibida_en']
         constraints = [
-            # Una sola solicitud abierta por persona y tipo: evita inundar el trámite y duplicar ejecuciones.
+            # Una sola solicitud abierta por persona, tipo y tratamiento: evita inundar el trámite y duplicar ejecuciones.
+            # (`tratamiento` está vacío salvo en las oposiciones, donde cada tratamiento tiene su propia solicitud.)
             models.UniqueConstraint(
-                fields=['paciente', 'tipo'], condition=~Q(estado='CERRADA'), name='una_solicitud_abierta_por_tipo',
+                fields=['paciente', 'tipo', 'tratamiento'], condition=~Q(estado='CERRADA'),
+                name='una_solicitud_abierta_por_tipo',
             ),
         ]
         verbose_name = 'solicitud de derechos'
@@ -121,3 +135,38 @@ class HistorialSolicitud(models.Model):
 
     def delete(self, *args, **kwargs):
         raise PermissionError('El historial de una solicitud no se elimina.')
+
+
+class OposicionTratamiento(models.Model):
+    """Bloqueo vigente de un tratamiento para un paciente.
+
+    Es la única fuente de verdad para los procesos: antes de usar el dato de alguien para un tratamiento oponible,
+    preguntan `derechos.oposiciones.hay_oposicion`. Se conserva la fila al levantarla (con `levantada_en`) para
+    poder probar desde y hasta cuándo estuvo bloqueado el tratamiento.
+    """
+
+    paciente = models.ForeignKey('pacientes.Paciente', on_delete=models.PROTECT, related_name='oposiciones')
+    tratamiento = models.CharField(max_length=25, choices=SolicitudDerecho.Tratamiento.choices)
+    solicitud = models.ForeignKey(SolicitudDerecho, on_delete=models.PROTECT, related_name='oposiciones')
+    desde = models.DateTimeField(default=timezone.now)
+    levantada_en = models.DateTimeField(null=True, blank=True)
+    levantada_por = models.PositiveIntegerField(null=True, blank=True)  # id de la cuenta que la levantó
+
+    class Meta:
+        ordering = ['-desde']
+        constraints = [
+            # Un tratamiento tiene a lo sumo un bloqueo vigente por persona.
+            models.UniqueConstraint(
+                fields=['paciente', 'tratamiento'], condition=Q(levantada_en__isnull=True),
+                name='una_oposicion_vigente_por_tratamiento',
+            ),
+        ]
+        verbose_name = 'oposición a un tratamiento'
+        verbose_name_plural = 'oposiciones a tratamientos'
+
+    def __str__(self):
+        return f'{self.get_tratamiento_display()} ({"vigente" if self.vigente else "levantada"})'
+
+    @property
+    def vigente(self):
+        return self.levantada_en is None
