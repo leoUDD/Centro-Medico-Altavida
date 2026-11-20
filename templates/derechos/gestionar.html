@@ -22,8 +22,14 @@
   <div class="acciones"><button type="submit" class="btn btn-primario btn-grande">Resolver</button></div>
 </form>
 {% endif %}
+{% if s.estado == Estado.RESUELTA or s.estado == Estado.CERRADA %}
+<section class="tarjeta tarjeta-pad pila">
+  <p>Resolución: <strong>{{ s.get_resolucion_display }}</strong>{% if s.fundamento %} · {{ s.get_fundamento_display }}{% endif %}.{% if s.tipo == 'ACCESO' or s.tipo == 'PORTABILIDAD' %} Descargas del titular: {{ s.descargas }}.{% endif %}</p>
+  {% if s.respuesta %}<p><strong>Respuesta al titular:</strong></p><p>{{ s.respuesta|linebreaksbr }}</p>{% endif %}
+  {% if s.tipo == 'SUPRESION' and s.resolucion != 'RECHAZADA' %}<p class="muted small">La cuenta del titular quedó desactivada: si tenía un correo registrado, esta respuesta también se le envió ahí.</p>{% endif %}
+</section>
+{% endif %}
 {% if s.estado == Estado.RESUELTA %}
-<p>Resuelta: <strong>{{ s.get_resolucion_display }}</strong>{% if s.fundamento %} · {{ s.get_fundamento_display }}{% endif %}. Descargas del titular: {{ s.descargas }}.</p>
 <form method="post" action="{% url 'derechos:cerrar' s.codigo %}">{% csrf_token %}<button type="submit" class="btn btn-primario">Cerrar solicitud</button></form>
 {% endif %}
 

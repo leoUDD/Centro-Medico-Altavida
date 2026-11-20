@@ -1,5 +1,6 @@
 """Reglas del ejercicio de derechos. Las vistas solo llaman a estas funciones: ninguna transición ni ejecución ocurre fuera de aquí."""
 import hmac
+import logging
 import secrets
 from datetime import timedelta
 
@@ -20,6 +21,8 @@ from apps.seguridad.indice import indice_ciego, indice_correo
 
 from . import validaciones
 from .models import HistorialSolicitud, OposicionTratamiento, SolicitudDerecho
+
+logger = logging.getLogger(__name__)
 
 Estado = SolicitudDerecho.Estado
 Tipo = SolicitudDerecho.Tipo
@@ -368,6 +371,7 @@ def resolver(solicitud, ejecutor, resolucion, fundamento='', respuesta=''):
         raise DerechosError('Un rechazo debe indicar su fundamento.')
     tipo, paciente = solicitud.tipo, solicitud.paciente
     extra = {}
+    correo_respuesta = ''
     if resolucion != Resolucion.RECHAZADA:
         if tipo in (Tipo.ACCESO, Tipo.PORTABILIDAD):
             solicitud.descarga_hasta = timezone.now() + timedelta(days=settings.DERECHOS_DESCARGA_DIAS)
@@ -383,6 +387,9 @@ def resolver(solicitud, ejecutor, resolucion, fundamento='', respuesta=''):
                 + (f' y cancelamos {cancelados} recordatorio(s) que estaban programados' if cancelados else '')
                 + '. Puedes levantar el bloqueo cuando quieras desde Mis derechos.')
         elif tipo == Tipo.SUPRESION:
+            # Se lee antes de suprimir: después la cuenta queda desactivada y la identidad puede no existir, y sin
+            # el correo el titular no tendría cómo conocer la respuesta.
+            correo_respuesta = solicitud.solicitante.email
             conserva, cantidad, informe = _suprimir(paciente, ejecutor)
             extra['cantidad'] = cantidad
             if conserva:
@@ -399,7 +406,23 @@ def resolver(solicitud, ejecutor, resolucion, fundamento='', respuesta=''):
     solicitud.resuelta_en, solicitud.resuelta_por = timezone.now(), ejecutor.pk
     _transicion(solicitud, Estado.RESUELTA, ejecutor, resolucion.lower())
     _auditar(Operacion.DERECHO_RESOLUCION, solicitud, ejecutor, estado_nuevo=Estado.RESUELTA, motivo_codigo=fundamento or resolucion)
+    if tipo == Tipo.SUPRESION and correo_respuesta:
+        # Solo si la resolución se guardó: un rollback no debe dejar un correo que anuncia una supresión que no ocurrió.
+        transaction.on_commit(lambda: _enviar_respuesta(solicitud.codigo, solicitud.respuesta, correo_respuesta))
     return solicitud
+
+
+def _enviar_respuesta(codigo, respuesta, correo):
+    """Envía la respuesta al titular. Un fallo del correo no deshace la supresión: se anota en el log, sin la dirección."""
+    try:
+        send_mail(
+            f'Respuesta a tu solicitud {codigo} en Centro Médico Altavida',
+            f'{respuesta}\n\nEsta es la respuesta a tu solicitud {codigo}. Como tu cuenta del portal fue eliminada, '
+            'te la enviamos por este medio. Si tienes dudas, acércate a recepción.',
+            getattr(settings, 'DEFAULT_FROM_EMAIL', None), [correo],
+        )
+    except Exception:
+        logger.exception('No se pudo enviar por correo la respuesta de la solicitud %s', codigo)
 
 
 def cerrar(solicitud, ejecutor):
