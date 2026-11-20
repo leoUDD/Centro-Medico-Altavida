@@ -302,6 +302,61 @@ class SupresionTests(Flujo):
         self.u_ana.refresh_from_db()
         self.assertTrue(self.u_ana.is_active)
 
+    def test_la_respuesta_llega_por_correo_aunque_se_borre_la_identidad(self):
+        # Sin la cuenta ni la identidad, el titular no tendría otro modo de saber qué se eliminó.
+        correo = self.ana.email
+        s = self.verificada(T.SUPRESION)
+        with self.captureOnCommitCallbacks(execute=True):
+            servicio.resolver(s, self.encargado, R.EJECUTADA)
+        self.ana.refresh_from_db()
+        self.assertFalse(hasattr(self.ana, 'identidad') and self.ana._identidad())
+        respuesta = mail.outbox[-1]
+        self.assertEqual(respuesta.to, [correo])
+        self.assertIn(s.codigo, respuesta.subject)
+        self.assertIn('Se eliminó', respuesta.body)
+        self.assertIn('Cómo se propagó', respuesta.body)
+
+    def test_con_ficha_el_correo_dice_que_se_bloqueo_y_hasta_cuando(self):
+        Diagnostico.objects.create(paciente=self.ana, medico=self.medico, diagnostico='Gastritis')
+        s = self.verificada(T.SUPRESION)
+        with self.captureOnCommitCallbacks(execute=True):
+            servicio.resolver(s, self.encargado, R.EJECUTADA)
+        cuerpo = mail.outbox[-1].body
+        self.assertIn('Se bloqueó por obligación legal', cuerpo)
+        self.assertIn('conservarse por ley hasta el', cuerpo)
+        self.assertNotIn('Gastritis', cuerpo)  # el correo no lleva contenido clínico
+
+    def test_si_la_supresion_falla_no_se_envia_la_respuesta(self):
+        Diagnostico.objects.create(paciente=self.ana, medico=self.medico, diagnostico='x')
+        s = self.verificada(T.SUPRESION)
+        enviados = len(mail.outbox)
+        from unittest import mock
+        with self.captureOnCommitCallbacks(execute=True) as pendientes:
+            with mock.patch('apps.derechos.servicio.conservar_hasta', side_effect=RuntimeError('falla')):
+                with self.assertRaises(RuntimeError):
+                    servicio.resolver(s, self.encargado, R.EJECUTADA)
+        self.assertEqual(pendientes, [])
+        self.assertEqual(len(mail.outbox), enviados)
+
+    def test_un_fallo_del_correo_no_deshace_la_supresion(self):
+        s = self.verificada(T.SUPRESION)
+        from unittest import mock
+        with mock.patch('apps.derechos.servicio.send_mail', side_effect=OSError('sin servidor de correo')):
+            with self.assertLogs('apps.derechos.servicio', level='ERROR') as registro:
+                with self.captureOnCommitCallbacks(execute=True):
+                    servicio.resolver(s, self.encargado, R.EJECUTADA)
+        s.refresh_from_db()
+        self.assertEqual(s.estado, E.RESUELTA)
+        self.assertNotIn('@', '\n'.join(registro.output))  # el log no lleva la dirección de correo
+
+    def test_el_encargado_ve_la_respuesta_que_se_entrego(self):
+        s = self.verificada(T.SUPRESION)
+        servicio.resolver(s, self.encargado, R.EJECUTADA)
+        self.client.force_login(self.encargado)
+        r = self.client.get(reverse('derechos:gestionar', args=[s.codigo]))
+        self.assertContains(r, 'Respuesta al titular')
+        self.assertContains(r, 'Se eliminó')
+
 
 class MenoresYAccesoTests(Flujo):
     def test_un_menor_no_solicita_por_si_mismo_ni_un_tercero_por_el(self):
